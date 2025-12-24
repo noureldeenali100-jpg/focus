@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Screen, State, BlockEvent, Task, Theme, AccentColor, AppTimer, AppConfig } from './types';
 import { 
   DEFAULT_PIN, 
@@ -33,7 +33,6 @@ const App: React.FC = () => {
         ...parsed,
         theme: parsed.theme || 'light',
         accentColor: parsed.accentColor || 'blue',
-        isSoundEnabled: parsed.isSoundEnabled ?? true,
         timerEndTimestamp: parsed.timerEndTimestamp || null,
         timerPausedRemainingSeconds: parsed.timerPausedRemainingSeconds || null,
         timerTotalDurationSeconds: parsed.timerTotalDurationSeconds || 25 * 60,
@@ -61,15 +60,17 @@ const App: React.FC = () => {
         tg: { allowedMs: CYCLE_USAGE_LIMIT_MS, lockMs: CYCLE_LOCK_DURATION_MS }
       },
       cycleAppIds: CYCLE_APPS_BASE.map(a => a.id),
-      isSoundEnabled: true,
       timerEndTimestamp: null,
       timerPausedRemainingSeconds: null,
       timerTotalDurationSeconds: 25 * 60,
     };
   });
 
+  // Derived state for the UI
   const [timerDisplaySeconds, setTimerDisplaySeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  const activeOverlayRef = useRef<{ name: string; lockedUntil: number | null } | null>(null);
   const [activeOverlay, setActiveOverlay] = useState<{ name: string; lockedUntil: number | null } | null>(null);
   const [isPinPromptActive, setIsPinPromptActive] = useState<{ active: boolean; purpose: 'unlock' | 'settings' | 'uninstall' | 'edit_config' }>({
     active: false,
@@ -77,57 +78,13 @@ const App: React.FC = () => {
   });
 
   const activeAppId = useRef<string | null>(null);
-
-  // Sound Utility using Web Audio API for rewarding distraction-free audio cues
-  const playFeedbackSound = useCallback((type: 'task' | 'timer') => {
-    if (!state.isSoundEnabled) return;
-
-    try {
-      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-      if (!AudioContextClass) return;
-      
-      const ctx = new AudioContextClass();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      const now = ctx.currentTime;
-
-      if (type === 'task') {
-        // Quick pleasant ascending chime for task completion
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(392, now); // G4
-        osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.1); // C5
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        osc.start(now);
-        osc.stop(now + 0.4);
-      } else {
-        // Multi-tone celebratory but soft chime for timer completion
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.2); // E5
-        osc.frequency.setValueAtTime(783.99, now + 0.4); // G5
-        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.6); // C6
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.1, now + 0.1);
-        gain.gain.linearRampToValueAtTime(0.1, now + 0.5);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
-        osc.start(now);
-        osc.stop(now + 1.2);
-      }
-    } catch (e) {
-      console.error("Audio playback error", e);
-    }
-  }, [state.isSoundEnabled]);
+  const usageTickerRef = useRef<any>(null);
 
   useEffect(() => {
     localStorage.setItem('focus_guardian_v9_state', JSON.stringify(state));
   }, [state]);
 
+  // Cleanup old completed tasks automatically after 7 days
   useEffect(() => {
     const cleanupOldTasks = () => {
       const now = Date.now();
@@ -136,6 +93,8 @@ const App: React.FC = () => {
           task.completed && task.completedAt && (now - task.completedAt > SEVEN_DAYS_MS)
         );
         if (!hasOldTasks) return prev;
+        
+        console.debug('Cleaning up tasks older than 7 days...');
         return {
           ...prev,
           tasks: prev.tasks.filter(task => 
@@ -144,11 +103,13 @@ const App: React.FC = () => {
         };
       });
     };
-    cleanupOldTasks();
-    const interval = setInterval(cleanupOldTasks, 1000 * 60 * 60);
+
+    cleanupOldTasks(); // Initial check on mount
+    const interval = setInterval(cleanupOldTasks, 1000 * 60 * 60); // Background cleanup every hour
     return () => clearInterval(interval);
   }, []);
 
+  // Update theme classes
   useEffect(() => {
     const root = window.document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -162,14 +123,15 @@ const App: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', updateTheme);
   }, [state.theme]);
 
+  // Focus Timer Engine
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
+      
       if (state.timerEndTimestamp && !state.timerPausedRemainingSeconds) {
         const diff = Math.ceil((state.timerEndTimestamp - now) / 1000);
         if (diff <= 0) {
           handleCompleteFocus();
-          playFeedbackSound('timer');
           setState(prev => ({ ...prev, timerEndTimestamp: null, timerPausedRemainingSeconds: null }));
           setTimerDisplaySeconds(0);
           setIsTimerRunning(false);
@@ -187,13 +149,14 @@ const App: React.FC = () => {
       }
     }, 200);
     return () => clearInterval(interval);
-  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, playFeedbackSound]);
+  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds]);
 
   const toggleTimer = () => {
     if (!state.isActivated) {
       alert("Activation Required: Enable the App Shield in Settings to start focus sessions.");
       return;
     }
+    
     if (state.timerEndTimestamp && !state.timerPausedRemainingSeconds) {
       const remaining = Math.max(0, Math.ceil((state.timerEndTimestamp - Date.now()) / 1000));
       setState(prev => ({ ...prev, timerPausedRemainingSeconds: remaining }));
@@ -258,7 +221,6 @@ const App: React.FC = () => {
             const task = p.tasks.find(t => t.id === id);
             if (!task) return p;
             const isNowCompleted = !task.completed;
-            if (isNowCompleted) playFeedbackSound('task');
             return {
               ...p,
               balance: task.completed ? p.balance : p.balance + 50,
@@ -281,10 +243,8 @@ const App: React.FC = () => {
       case Screen.SETTINGS: return (
         <Settings 
           theme={state.theme} accentColor={state.accentColor} 
-          isSoundEnabled={state.isSoundEnabled}
           onThemeChange={(t) => setState(p => ({...p, theme: t}))} 
           onAccentChange={(c) => setState(p => ({...p, accentColor: c}))}
-          onToggleSound={() => setState(p => ({...p, isSoundEnabled: !p.isSoundEnabled}))}
           onUnlockRequest={() => setIsPinPromptActive({ active: true, purpose: 'unlock' })}
           isUnlocked={state.isTemporarilyUnlocked}
         />
