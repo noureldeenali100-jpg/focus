@@ -64,6 +64,7 @@ export interface State {
   appTimers: Record<string, AppTimer>;
   appConfigs: Record<string, AppConfig>; 
   cycleAppIds: string[]; 
+  isSoundEnabled: boolean;
   // Timer persistence
   timerEndTimestamp: number | null;
   timerPausedRemainingSeconds: number | null;

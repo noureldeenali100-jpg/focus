@@ -5,14 +5,16 @@ import { Theme, AccentColor } from '../types';
 interface SettingsProps {
   theme: Theme;
   accentColor: AccentColor;
+  isSoundEnabled: boolean;
   onThemeChange: (t: Theme) => void;
   onAccentChange: (c: AccentColor) => void;
+  onToggleSound: () => void;
   onUnlockRequest: () => void;
   isUnlocked: boolean;
 }
 
 const Settings: React.FC<SettingsProps> = ({ 
-  theme, accentColor, onThemeChange, onAccentChange, onUnlockRequest, isUnlocked
+  theme, accentColor, isSoundEnabled, onThemeChange, onAccentChange, onToggleSound, onUnlockRequest, isUnlocked
 }) => {
   const accentColors: AccentColor[] = ['blue', 'emerald', 'purple', 'amber', 'rose', 'slate'];
 
@@ -59,6 +61,30 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Audio Section */}
+        <div>
+          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Auditory Reinforcement</h3>
+          <button
+            onClick={onToggleSound}
+            className="w-full flex items-center justify-between p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[36px] shadow-sm active:scale-98 transition-all"
+          >
+            <div className="flex items-center space-x-5">
+              <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-colors ${isSoundEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {isSoundEnabled ? <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/> : <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>}
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="font-black text-slate-800 dark:text-slate-100 tracking-tight">System Sounds</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{isSoundEnabled ? 'Positive Reinforcement ON' : 'Silent Focus'}</p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${isSoundEnabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
+              <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${isSoundEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            </div>
+          </button>
         </div>
 
         {/* System & Security */}
