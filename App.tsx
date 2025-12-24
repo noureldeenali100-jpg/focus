@@ -1,11 +1,7 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Screen, State, BlockEvent, Task, Theme, AccentColor, AppTimer, AppConfig } from './types';
 import { 
-  DEFAULT_PIN, 
-  UNLOCK_DURATION_MS, 
   MARKET_UNLOCK_COST, 
-  MARKET_UNLOCK_DURATION_MS,
   CYCLE_USAGE_LIMIT_MS,
   CYCLE_LOCK_DURATION_MS,
   CYCLE_APPS_BASE,
@@ -13,20 +9,18 @@ import {
 } from './constants';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
-import Home from './components/Home';
+import Focus from './components/Focus';
+import Tasks from './components/Tasks';
 import AllowedApps from './components/AllowedApps';
 import Settings from './components/Settings';
 import Report from './components/Report';
 import PhoneSimulator from './components/PhoneSimulator';
-import PINPad from './components/PINPad';
 import BlockedOverlay from './components/BlockedOverlay';
 import Market from './components/Market';
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
 const App: React.FC = () => {
   const [state, setState] = useState<State>(() => {
-    const saved = localStorage.getItem('focus_guardian_v9_state');
+    const saved = localStorage.getItem('focus_guardian_v10_state');
     if (saved) {
       const parsed = JSON.parse(saved);
       return {
@@ -44,9 +38,6 @@ const App: React.FC = () => {
       isFirstTime: true,
       isActivated: false,
       userName: '',
-      pin: DEFAULT_PIN,
-      isTemporarilyUnlocked: false,
-      unlockUntil: null,
       blockLogs: [],
       balance: 100,
       tasks: [],
@@ -71,47 +62,35 @@ const App: React.FC = () => {
   const [timerDisplaySeconds, setTimerDisplaySeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<{ name: string; lockedUntil: number | null } | null>(null);
-  const [isPinPromptActive, setIsPinPromptActive] = useState<{ active: boolean; purpose: 'unlock' | 'settings' | 'uninstall' | 'edit_config' }>({
-    active: false,
-    purpose: 'unlock'
-  });
 
   const activeAppId = useRef<string | null>(null);
 
-  // Sound Utility using Web Audio API for rewarding distraction-free audio cues
   const playFeedbackSound = useCallback((type: 'task' | 'timer') => {
     if (!state.isSoundEnabled) return;
-
     try {
       const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
       if (!AudioContextClass) return;
-      
       const ctx = new AudioContextClass();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-
       osc.connect(gain);
       gain.connect(ctx.destination);
-
       const now = ctx.currentTime;
-
       if (type === 'task') {
-        // Quick pleasant ascending chime for task completion
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(392, now); // G4
-        osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.1); // C5
+        osc.frequency.setValueAtTime(392, now);
+        osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.1);
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
         osc.start(now);
         osc.stop(now + 0.4);
       } else {
-        // Multi-tone celebratory but soft chime for timer completion
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.2); // E5
-        osc.frequency.setValueAtTime(783.99, now + 0.4); // G5
-        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.6); // C6
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.2);
+        osc.frequency.setValueAtTime(783.99, now + 0.4);
+        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.6);
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(0.1, now + 0.1);
         gain.gain.linearRampToValueAtTime(0.1, now + 0.5);
@@ -125,29 +104,8 @@ const App: React.FC = () => {
   }, [state.isSoundEnabled]);
 
   useEffect(() => {
-    localStorage.setItem('focus_guardian_v9_state', JSON.stringify(state));
+    localStorage.setItem('focus_guardian_v10_state', JSON.stringify(state));
   }, [state]);
-
-  useEffect(() => {
-    const cleanupOldTasks = () => {
-      const now = Date.now();
-      setState(prev => {
-        const hasOldTasks = prev.tasks.some(task => 
-          task.completed && task.completedAt && (now - task.completedAt > SEVEN_DAYS_MS)
-        );
-        if (!hasOldTasks) return prev;
-        return {
-          ...prev,
-          tasks: prev.tasks.filter(task => 
-            !(task.completed && task.completedAt && (now - task.completedAt > SEVEN_DAYS_MS))
-          )
-        };
-      });
-    };
-    cleanupOldTasks();
-    const interval = setInterval(cleanupOldTasks, 1000 * 60 * 60);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -194,6 +152,14 @@ const App: React.FC = () => {
       alert("Activation Required: Enable the App Shield in Settings to start focus sessions.");
       return;
     }
+    
+    if (!state.timerEndTimestamp && !state.timerPausedRemainingSeconds && !state.activeTaskId) {
+      const firstPending = state.tasks.find(t => !t.completed);
+      if (firstPending) {
+        setState(prev => ({ ...prev, activeTaskId: firstPending.id }));
+      }
+    }
+
     if (state.timerEndTimestamp && !state.timerPausedRemainingSeconds) {
       const remaining = Math.max(0, Math.ceil((state.timerEndTimestamp - Date.now()) / 1000));
       setState(prev => ({ ...prev, timerPausedRemainingSeconds: remaining }));
@@ -231,28 +197,26 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (isPinPromptActive.active) {
-      return (
-        <PINPad 
-          title="Security Override" 
-          correctPin={state.pin}
-          onSuccess={() => { navigate(Screen.SETTINGS); setIsPinPromptActive({ active: false, purpose: 'unlock' }); }}
-          onCancel={() => setIsPinPromptActive({ active: false, purpose: 'unlock' })}
-        />
-      );
-    }
-
     switch (state.currentScreen) {
       case Screen.ONBOARDING: return <Onboarding onComplete={(name) => setState(p => ({...p, userName: name, isFirstTime: false, currentScreen: Screen.HOME}))} />;
       case Screen.HOME: return (
-        <Home 
-          userName={state.userName} tasks={state.tasks} activeTaskId={state.activeTaskId} isActivated={state.isActivated}
+        <Focus 
+          userName={state.userName} 
+          tasks={state.tasks} 
+          activeTaskId={state.activeTaskId}
           timerSeconds={timerDisplaySeconds}
           totalSeconds={state.timerTotalDurationSeconds}
           isTimerActive={isTimerRunning}
           onToggleTimer={toggleTimer}
           onResetTimer={resetTimer}
           onSetTimerSeconds={changeTimerDuration}
+        />
+      );
+      case Screen.TASKS: return (
+        <Tasks 
+          tasks={state.tasks} 
+          activeTaskId={state.activeTaskId} 
+          isTimerActive={isTimerRunning}
           onAddTask={(t) => setState(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: t, completed: false, createdAt: Date.now(), completedAt: null}]}))}
           onToggleTask={(id) => setState(p => {
             const task = p.tasks.find(t => t.id === id);
@@ -261,13 +225,13 @@ const App: React.FC = () => {
             if (isNowCompleted) playFeedbackSound('task');
             return {
               ...p,
+              activeTaskId: (p.activeTaskId === id && isNowCompleted) ? null : p.activeTaskId,
               balance: task.completed ? p.balance : p.balance + 50,
               tasks: p.tasks.map(t => t.id === id ? {...t, completed: isNowCompleted, completedAt: isNowCompleted ? Date.now() : null} : t)
             };
           })}
           onDeleteTask={(id) => setState(p => ({...p, tasks: p.tasks.filter(t => t.id !== id), activeTaskId: p.activeTaskId === id ? null : p.activeTaskId}))}
           onSetActiveTask={(id) => setState(p => ({...p, activeTaskId: id}))}
-          onNavigate={navigate} onNavigateSimulator={() => navigate(Screen.PHONE_SIMULATOR)}
         />
       );
       case Screen.ALLOWED_APPS: return (
@@ -285,23 +249,21 @@ const App: React.FC = () => {
           onThemeChange={(t) => setState(p => ({...p, theme: t}))} 
           onAccentChange={(c) => setState(p => ({...p, accentColor: c}))}
           onToggleSound={() => setState(p => ({...p, isSoundEnabled: !p.isSoundEnabled}))}
-          onUnlockRequest={() => setIsPinPromptActive({ active: true, purpose: 'unlock' })}
-          isUnlocked={state.isTemporarilyUnlocked}
         />
       );
       case Screen.REPORT: return <Report logs={state.blockLogs} />;
       case Screen.MARKET: return <Market balance={state.balance} onPurchase={() => {
-        if(state.balance >= MARKET_UNLOCK_COST) setState(p => ({...p, balance: p.balance - MARKET_UNLOCK_COST, isTemporarilyUnlocked: true, unlockUntil: Date.now() + MARKET_UNLOCK_DURATION_MS, currentScreen: Screen.HOME}));
+        alert("The Marketplace items are currently being updated. No changes made.");
       }} />;
       case Screen.PHONE_SIMULATOR: return <PhoneSimulator 
-        isUnlocked={state.isTemporarilyUnlocked} 
+        isUnlocked={false} 
         appTimers={state.appTimers} 
         cycleAppIds={state.cycleAppIds} 
+        isTimerRunning={isTimerRunning}
         onAppClick={(id, name, isAllowed) => {
           if (!state.isActivated) { alert(`${name} is functional (Shield is OFF)`); return; }
           const timer = state.appTimers[id];
-          if (state.isTemporarilyUnlocked) { alert(`${name} override active.`); return; }
-          if (!isAllowed) {
+          if ((isTimerRunning && !isAllowed) || !isAllowed) {
             setActiveOverlay({ name, lockedUntil: null });
             setState(prev => ({ ...prev, blockLogs: [...prev.blockLogs, { appName: name, timestamp: Date.now() }] }));
             return;
@@ -326,7 +288,7 @@ const App: React.FC = () => {
   }[state.accentColor];
 
   return (
-    <div style={{'--accent-color': accentHex} as any} className={`flex items-center justify-center min-h-screen font-sans transition-all duration-300 ${state.theme === 'dark' ? 'bg-slate-950' : 'bg-slate-100'}`}>
+    <div style={{'--accent-color': accentHex} as any} className="flex items-center justify-center min-h-screen w-full font-sans transition-all duration-300 dark:bg-slate-950 bg-slate-100">
       <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={!state.isFirstTime && state.currentScreen !== Screen.ONBOARDING && state.currentScreen !== Screen.PHONE_SIMULATOR}>
         {renderContent()}
       </Layout>

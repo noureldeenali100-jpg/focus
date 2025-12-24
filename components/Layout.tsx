@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Screen } from '../types';
 
@@ -12,11 +11,20 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, showNav }) => {
   const tabs = [
     { 
-      label: 'Home', 
+      label: 'Focus', 
       screen: Screen.HOME, 
       icon: (active: boolean) => (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      )
+    },
+    { 
+      label: 'Tasks', 
+      screen: Screen.TASKS, 
+      icon: (active: boolean) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
         </svg>
       )
     },
@@ -25,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
       screen: Screen.ALLOWED_APPS, 
       icon: (active: boolean) => (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>
         </svg>
       )
     },
@@ -43,37 +51,38 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
       screen: Screen.SETTINGS, 
       icon: (active: boolean) => (
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
         </svg>
       )
     },
   ];
 
   return (
-    <div className="flex flex-col h-[844px] w-[390px] bg-slate-50 dark:bg-slate-950 overflow-hidden shadow-2xl relative rounded-[48px] border-[12px] border-slate-900 dark:border-slate-900 ring-4 ring-slate-200 dark:ring-slate-800">
-      <main className={`flex-1 overflow-y-auto no-scrollbar relative z-10 ${showNav ? 'pb-24' : ''}`}>
-        {children}
+    <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+      <div className="h-[env(safe-area-inset-top,20px)] bg-transparent w-full shrink-0" />
+      
+      <main className={`flex-1 overflow-y-auto no-scrollbar relative z-10 ${showNav ? 'pb-[calc(72px+env(safe-area-inset-bottom,12px))]' : ''}`}>
+        <div className="page-transition h-full w-full">
+          {children}
+        </div>
       </main>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 h-24 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-4 z-50">
+        <nav className="absolute bottom-0 left-0 right-0 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-50">
           {tabs.map((tab) => {
             const isActive = currentScreen === tab.screen;
             return (
               <button 
                 key={tab.screen}
                 onClick={() => onNavigate(tab.screen)}
-                className={`flex flex-col items-center justify-center space-y-1.5 w-16 transition-all duration-300 relative group`}
+                className={`flex flex-col items-center justify-center space-y-1 w-1/5 transition-all duration-200 relative active:scale-95 touch-none py-1`}
               >
-                <div className={`p-2.5 rounded-2xl transition-all duration-300 ${isActive ? 'bg-[var(--accent-color)]/15 text-[var(--accent-color)]' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'}`}>
+                <div className={`p-2 rounded-xl transition-all duration-200 ${isActive ? 'bg-[var(--accent-color)]/10 text-[var(--accent-color)]' : 'text-slate-400 dark:text-slate-400'}`}>
                   {tab.icon(isActive)}
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${isActive ? 'text-[var(--accent-color)]' : 'text-slate-400 dark:text-slate-600'}`}>
+                <span className={`text-[9px] font-bold tracking-tight ${isActive ? 'text-[var(--accent-color)]' : 'text-slate-400 dark:text-slate-400'}`}>
                   {tab.label}
                 </span>
-                {isActive && (
-                  <div className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-in fade-in zoom-in duration-300" />
-                )}
               </button>
             );
           })}

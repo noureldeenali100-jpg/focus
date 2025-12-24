@@ -26,11 +26,8 @@ export const MOTIVATIONAL_QUOTES = [
   "Simplicity is the ultimate sophistication."
 ];
 
-export const DEFAULT_PIN = "1234";
-export const UNLOCK_DURATION_MS = 5 * 60 * 1000; 
 export const UNINSTALL_DELAY_MS = 10 * 60 * 60 * 1000; 
 export const MARKET_UNLOCK_COST = 1000;
-export const MARKET_UNLOCK_DURATION_MS = 60 * 60 * 1000; 
 
 // Cycle Logic Constants
 export const CYCLE_USAGE_LIMIT_MS = 30 * 60 * 1000; // 30 minutes

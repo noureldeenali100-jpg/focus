@@ -2,6 +2,7 @@
 export enum Screen {
   ONBOARDING = 'ONBOARDING',
   HOME = 'HOME',
+  TASKS = 'TASKS',
   ALLOWED_APPS = 'ALLOWED_APPS',
   SETTINGS = 'SETTINGS',
   REPORT = 'REPORT',
@@ -50,9 +51,6 @@ export interface State {
   isFirstTime: boolean;
   isActivated: boolean; 
   userName: string;
-  pin: string;
-  isTemporarilyUnlocked: boolean; 
-  unlockUntil: number | null;
   blockLogs: BlockEvent[];
   balance: number;
   tasks: Task[];

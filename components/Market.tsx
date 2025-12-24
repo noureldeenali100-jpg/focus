@@ -43,11 +43,10 @@ const Market: React.FC<MarketProps> = ({ balance, onPurchase }) => {
           </div>
           
           <button 
-            disabled={balance < MARKET_UNLOCK_COST}
-            onClick={onPurchase}
-            className={`w-full py-5 rounded-2xl font-black uppercase tracking-wider transition-all ${balance >= MARKET_UNLOCK_COST ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'}`}
+            disabled={true}
+            className="w-full py-5 rounded-2xl font-black uppercase tracking-wider transition-all bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"
           >
-            {balance >= MARKET_UNLOCK_COST ? 'Purchase Item' : 'Insufficient Funds'}
+            Item Unavailable
           </button>
         </div>
 

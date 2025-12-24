@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UNALLOWED_APPS, CYCLE_APPS_BASE } from '../constants';
 import { AppTimer, AppConfig } from '../types';
@@ -30,11 +29,11 @@ const AllowedApps: React.FC<AllowedAppsProps> = ({
       <header className="mb-10 relative">
         <div className="absolute -left-4 -top-4 w-20 h-20 bg-[var(--accent-color)]/5 blur-3xl rounded-full" />
         <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">App Shield</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Control your digital boundaries</p>
+        <p className="text-slate-500 dark:text-slate-300 text-sm font-medium">Control your digital boundaries</p>
       </header>
 
       <div className="space-y-6 mb-12">
-        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-2">Managed Exceptions</h3>
+        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-[0.2em] px-2">Managed Exceptions</h3>
         {CYCLE_APPS_BASE.map(app => {
           const config = appConfigs[app.id];
           const isEditing = editingId === app.id;
@@ -49,7 +48,7 @@ const AllowedApps: React.FC<AllowedAppsProps> = ({
                     <p className="font-black text-lg text-slate-800 dark:text-slate-100 tracking-tight">{app.name}</p>
                     <div className="flex items-center space-x-2 mt-0.5">
                       <span className="text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg tracking-wider">Timed</span>
-                      <p className="text-xs font-bold text-slate-400">{Math.round(config.allowedMs/60000)}m / {Math.round(config.lockMs/60000)}m</p>
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-400">{Math.round(config.allowedMs/60000)}m / {Math.round(config.lockMs/60000)}m</p>
                     </div>
                   </div>
                 </div>
@@ -63,7 +62,7 @@ const AllowedApps: React.FC<AllowedAppsProps> = ({
                 )}
               </div>
               {isEditing && (
-                <div className="p-8 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800 space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="p-8 bg-slate-50/50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
                   <TimePicker 
                     label="Active Window" 
                     desc="Maximum continuous use allowed"
@@ -90,22 +89,22 @@ const AllowedApps: React.FC<AllowedAppsProps> = ({
 
       <div className="space-y-4 mb-14">
         <div className="flex items-center justify-between px-2">
-          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Hard Restrictions</h3>
-          <span className="text-[10px] font-black text-red-500/60 uppercase tracking-widest">Always Guarded</span>
+          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-[0.2em]">Hard Restrictions</h3>
+          <span className="text-[10px] font-black text-red-500/80 uppercase tracking-widest">Always Guarded</span>
         </div>
         <div className="grid grid-cols-1 gap-4">
           {UNALLOWED_APPS.map(app => (
-            <div key={app.id} className="flex items-center justify-between p-5 bg-white dark:bg-slate-900/50 rounded-[28px] border border-slate-100 dark:border-slate-800 opacity-60 grayscale hover:grayscale-0 transition-all duration-500 group">
+            <div key={app.id} className="flex items-center justify-between p-5 bg-white dark:bg-slate-900/50 rounded-[28px] border border-slate-100 dark:border-slate-800 transition-all duration-500 group">
               <div className="flex items-center space-x-4">
-                <div className={`w-14 h-14 ${app.color} rounded-[20px] flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:shadow-md transition-all`}>
+                <div className={`w-14 h-14 ${app.color} rounded-[20px] flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:shadow-md transition-all opacity-80 grayscale group-hover:grayscale-0`}>
                   {app.icon}
                 </div>
                 <div>
-                  <p className="font-bold text-slate-700 dark:text-slate-300 leading-tight">{app.name}</p>
+                  <p className="font-bold text-slate-700 dark:text-slate-200 leading-tight">{app.name}</p>
                   <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mt-0.5">Blacklisted</p>
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </div>
             </div>
@@ -126,13 +125,13 @@ const TimePicker: React.FC<{ label: string; desc: string; value: number; options
   <div>
     <div className="mb-4">
       <p className="text-sm font-black text-slate-800 dark:text-slate-100 tracking-tight">{label}</p>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{desc}</p>
+      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest">{desc}</p>
     </div>
     <div className="flex flex-wrap gap-2.5">
       {options.map(opt => (
         <button 
           key={opt} onClick={() => onChange(opt)}
-          className={`flex-1 min-w-[60px] py-3.5 rounded-[18px] text-xs font-black transition-all ${value === opt ? 'bg-[var(--accent-color)] text-white shadow-lg ring-4 ring-[var(--accent-color)]/10' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}
+          className={`flex-1 min-w-[60px] py-3.5 rounded-[18px] text-xs font-black transition-all ${value === opt ? 'bg-[var(--accent-color)] text-white shadow-lg ring-4 ring-[var(--accent-color)]/10' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}
         >
           {opt}m
         </button>

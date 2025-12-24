@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UNALLOWED_APPS, CYCLE_APPS_BASE } from '../constants';
 import { AppTimer } from '../types';
@@ -7,11 +6,19 @@ interface PhoneSimulatorProps {
   isUnlocked: boolean;
   appTimers: Record<string, AppTimer>;
   cycleAppIds: string[];
+  isTimerRunning: boolean; // Added to enforce session-based blocking
   onAppClick: (appId: string, appName: string, isAllowed: boolean) => void;
   onExit: () => void;
 }
 
-const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ isUnlocked, appTimers, cycleAppIds, onAppClick, onExit }) => {
+const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ 
+  isUnlocked, 
+  appTimers, 
+  cycleAppIds, 
+  isTimerRunning,
+  onAppClick, 
+  onExit 
+}) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
   useEffect(() => {
@@ -23,6 +30,12 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ isUnlocked, appTimers, 
 
   const getStatusLabel = (appId: string, baseAllowed: boolean) => {
     if (isUnlocked) return null;
+    
+    // During an active focus session, non-essential apps show as locked
+    if (isTimerRunning && !baseAllowed) {
+        return <span className="text-[8px] bg-red-600 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm">FOCUS</span>;
+    }
+
     if (!baseAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1">X</span>;
     
     if (cycleAppIds.includes(appId)) {
@@ -35,8 +48,9 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ isUnlocked, appTimers, 
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-white relative">
-      <div className="h-8 flex justify-between items-center px-6 pt-2 text-[10px] font-bold">
+    <div className="flex flex-col h-full bg-slate-900 text-white relative w-full">
+      {/* Native-feeling Status Bar */}
+      <div className="h-8 flex justify-between items-center px-6 pt-2 text-[10px] font-bold shrink-0">
         <span>{time}</span>
         <div className="flex items-center space-x-1">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
@@ -44,14 +58,14 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ isUnlocked, appTimers, 
         </div>
       </div>
 
-      <div className="flex-1 p-8 grid grid-cols-4 content-start gap-x-4 gap-y-10">
+      <div className="flex-1 p-8 grid grid-cols-4 content-start gap-x-4 gap-y-10 overflow-y-auto no-scrollbar">
         {CYCLE_APPS_BASE.concat(UNALLOWED_APPS).map(app => (
           <button 
             key={app.id} 
             onClick={() => onAppClick(app.id, app.name, app.isAllowed)}
             className="flex flex-col items-center space-y-2 active:scale-90 transition-transform relative"
           >
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold ${app.color} shadow-lg relative`}>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold ${app.color} shadow-lg relative transition-opacity ${isTimerRunning && !app.isAllowed ? 'opacity-40' : 'opacity-100'}`}>
               {app.icon}
               {getStatusLabel(app.id, app.isAllowed)}
             </div>
@@ -60,16 +74,17 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ isUnlocked, appTimers, 
         ))}
       </div>
 
-      <div className="h-10 flex justify-center items-center pb-2">
+      <div className="h-12 flex justify-center items-center pb-4 shrink-0">
          <button 
           onClick={onExit}
-          className="w-32 h-1 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
+          className="w-32 h-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors active:scale-95"
+          aria-label="Exit Simulator"
         />
       </div>
 
-      <div className="absolute top-12 left-0 right-0 text-center pointer-events-none opacity-40">
-        <p className="text-4xl font-extralight tracking-widest">{time}</p>
-        <p className="text-xs uppercase tracking-[0.3em] mt-1">Focus Shield v3.0</p>
+      <div className="absolute top-1/2 left-0 right-0 text-center pointer-events-none opacity-10 -translate-y-1/2 select-none">
+        <p className="text-6xl font-black tracking-widest">{time}</p>
+        <p className="text-xs uppercase tracking-[0.5em] mt-2">Guardian Security Layer</p>
       </div>
     </div>
   );
