@@ -1,0 +1,5 @@
+{
+  "name": "FocusGuardian",
+  "description": "A productivity-focused mobile application designed to block distracting social media while keeping essential communication via WhatsApp open.",
+  "requestFramePermissions": []
+}
