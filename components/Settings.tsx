@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Theme, AccentColor } from '../types';
 
@@ -12,6 +11,18 @@ interface SettingsProps {
   onUnlockRequest: () => void;
   isUnlocked: boolean;
 }
+
+const getAccentHex = (color: AccentColor): string => {
+  switch (color) {
+    case 'blue': return '#2563eb';
+    case 'emerald': return '#10b981';
+    case 'purple': return '#9333ea';
+    case 'amber': return '#d97706';
+    case 'rose': return '#e11d48';
+    case 'slate': return '#475569';
+    default: return '#2563eb';
+  }
+};
 
 const Settings: React.FC<SettingsProps> = ({ 
   theme, accentColor, isSoundEnabled, onThemeChange, onAccentChange, onToggleSound, onUnlockRequest, isUnlocked
@@ -53,7 +64,7 @@ const Settings: React.FC<SettingsProps> = ({
                     key={color}
                     onClick={() => onAccentChange(color)}
                     className={`w-10 h-10 rounded-full border-4 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90 ${accentColor === color ? 'border-slate-200 dark:border-slate-700 ring-4 ring-[var(--accent-color)]/20' : 'border-transparent'}`}
-                    style={{ backgroundColor: { blue:'#2563eb', emerald:'#10b981', purple:'#9333ea', amber:'#d97706', rose:'#e11d48', slate:'#475569' }[color] }}
+                    style={{ backgroundColor: getAccentHex(color) }}
                   >
                     {accentColor === color && <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />}
                   </button>
