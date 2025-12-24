@@ -84,7 +84,11 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center space-x-5">
               <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-colors ${isSoundEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  {isSoundEnabled ? <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/> : <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>}
+                  {isSoundEnabled ? (
+                    <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                  ) : (
+                    <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>
+                  )}
                 </svg>
               </div>
               <div className="text-left">
@@ -110,7 +114,17 @@ const Settings: React.FC<SettingsProps> = ({
               <div className="flex items-center space-x-5">
                 <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-colors ${isUnlocked ? 'bg-emerald-500 text-white' : 'bg-[var(--accent-color)]/10 text-[var(--accent-color)]'}`}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    {isUnlocked ? <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/> : <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>}
+                    {isUnlocked ? (
+                      <>
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                      </>
+                    ) : (
+                      <>
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </>
+                    )}
                   </svg>
                 </div>
                 <div className="text-left">
