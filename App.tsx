@@ -63,7 +63,6 @@ const App: React.FC = () => {
   const [activeOverlay, setActiveOverlay] = useState<{ name: string; waitRemainingMs: number | null } | null>(null);
   const [isAppFullscreen, setIsAppFullscreen] = useState(false);
 
-  // Derive running state directly from source of truth to avoid jitter
   const isTimerActive = useMemo(() => {
     return state.timerEndTimestamp !== null && state.timerPausedRemainingSeconds === null;
   }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds]);
@@ -185,7 +184,6 @@ const App: React.FC = () => {
     });
   }, [playFeedbackSound]);
 
-  // Enhanced Audio Synthesis Effect
   useEffect(() => {
     const stopAudio = () => {
       if (clockIntervalRef.current) clearInterval(clockIntervalRef.current);
@@ -375,7 +373,7 @@ const App: React.FC = () => {
       } as any} 
       className="flex items-center justify-center min-h-screen w-full font-sans dark:bg-slate-950 bg-slate-100"
     >
-      <div className="w-full h-full md:max-w-md lg:max-w-lg md:max-h-[850px] md:my-8 md:rounded-[48px] md:shadow-2xl overflow-hidden bg-white dark:bg-slate-900 relative flex flex-col transition-all duration-700">
+      <div className="w-full h-full md:max-w-md lg:max-w-lg md:max-h-[850px] md:my-8 md:rounded-[48px] md:shadow-2xl overflow-hidden bg-white dark:bg-slate-900 relative flex flex-col transition-all duration-300">
         <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav && !isAppFullscreen}>
           {state.currentScreen === Screen.ONBOARDING && (
             <Onboarding onComplete={(name, signature) => setState(p => ({
