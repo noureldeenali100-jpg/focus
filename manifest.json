@@ -1,0 +1,24 @@
+{
+  "name": "FocusGuardian",
+  "short_name": "FocusGuardian",
+  "description": "A productivity-focused mobile application designed to block distracting social media.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://www.gstatic.com/android/keyboard/emojikitchen/20201001/u1f6e1/u1f6e1_u1f4f1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://www.gstatic.com/android/keyboard/emojikitchen/20201001/u1f6e1/u1f6e1_u1f4f1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

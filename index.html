@@ -2,11 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#f8fafc" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="/manifest.json" />
     <title>FocusGuardian - Stay Productive</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -61,24 +62,10 @@
       }
 
       html, body {
-        height: 100%;
-        width: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden;
-        background-color: #f8fafc;
-        color: #0f172a;
         -webkit-text-size-adjust: none;
         text-size-adjust: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-      }
-      html.dark, html.dark body {
-        background-color: #020617;
-        color: #f8fafc;
       }
       body {
         font-family: var(--font-main);
@@ -121,5 +108,16 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }).catch(registrationError => {
+            console.log('ServiceWorker registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

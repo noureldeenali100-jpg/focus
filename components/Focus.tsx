@@ -5,20 +5,17 @@ import { MOTIVATIONAL_QUOTES } from '../constants';
 interface FocusProps {
   userName: string; profileImage: string | null; tasks: Task[]; activeTaskId: string | null;
   timerSeconds: number; totalSeconds: number; isTimerActive: boolean; focusSound: FocusSound;
-  isFullScreen: boolean; onToggleFullScreen: (fs: boolean) => void;
   onToggleTimer: () => void; onToggleMode: () => void; onSetTimerSeconds: (s: number) => void; onSetFocusSound: (s: FocusSound) => void;
 }
 
 const Focus: React.FC<FocusProps> = ({ 
   userName, profileImage, tasks, activeTaskId,
   timerSeconds, totalSeconds, isTimerActive, focusSound,
-  isFullScreen, onToggleFullScreen,
   onToggleTimer, onToggleMode, onSetTimerSeconds, onSetFocusSound
 }) => {
   const [showDurations, setShowDurations] = useState(false);
   const [showSounds, setShowSounds] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const wakeLockRef = useRef<any>(null);
 
   useEffect(() => {
     let interval: number | undefined;
@@ -29,30 +26,12 @@ const Focus: React.FC<FocusProps> = ({
     return () => clearInterval(interval);
   }, [isTimerActive]);
 
-  const enterFullScreen = async () => {
-    onToggleFullScreen(true);
-    try { if (document.documentElement.requestFullscreen) { await document.documentElement.requestFullscreen(); } } catch (e) {}
-  };
-
-  const exitFullScreen = async () => {
-    if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch (e) {} }
-    onToggleFullScreen(false);
-  };
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      if (!document.fullscreenElement) onToggleFullScreen(false);
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, [onToggleFullScreen]);
-
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60); const rs = s % 60;
     return `${m}:${rs < 10 ? '0' : ''}${rs}`;
   };
 
-  const t = { deepSession: "Focus Timer", stayPresent: "Stay focused", minFocus: "Minutes", stopwatch: "Stopwatch", fullScreen: "Full Screen Mode", exit: "Tap to close", sounds: "Ambient Sounds", mute: "Mute", rain: "Rain", clock: "Ticking", library: "Library" };
+  const t = { deepSession: "Focus Timer", stayPresent: "Stay focused", minFocus: "Minutes", stopwatch: "Stopwatch", sounds: "Ambient Sounds", mute: "Mute", rain: "Rain", clock: "Ticking", library: "Library" };
 
   const size = 220; const strokeWidth = 8; const radius = (size - strokeWidth * 2) / 2; const center = size / 2;
   const circumference = 2 * Math.PI * radius; const progress = totalSeconds > 0 ? (timerSeconds / totalSeconds) : 0;
@@ -65,14 +44,7 @@ const Focus: React.FC<FocusProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors">
-      {isFullScreen && (
-        <div onClick={exitFullScreen} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center cursor-pointer transform-gpu animate-in fade-in duration-500">
-          <div className="text-8xl font-black tracking-tighter tabular-nums text-white mb-8 transition-transform transform-gpu">{formatTime(timerSeconds)}</div>
-          <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em] opacity-60">{t.exit}</p>
-        </div>
-      )}
-
-      <section className={`flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden transition-all duration-500 ${isFullScreen ? 'opacity-0' : 'opacity-100'}`}>
+      <section className={`flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden transition-all duration-500`}>
         <div className="absolute top-5 start-5 z-50">
           <button onClick={() => setShowSounds(!showSounds)} className={`p-2 rounded-2xl bg-white/20 dark:bg-slate-900/40 border border-slate-200/30 dark:border-slate-700 backdrop-blur-sm active:scale-90 transition-all shadow-sm ${focusSound !== 'none' ? 'text-[var(--accent-color)] border-[var(--accent-color)]/20' : 'text-slate-400 dark:text-slate-400'}`}>
             {focusSound === 'none' ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>}
@@ -87,10 +59,6 @@ const Focus: React.FC<FocusProps> = ({
             </div>
           )}
         </div>
-
-        <button onClick={enterFullScreen} className="absolute top-5 end-5 z-50 p-2 rounded-2xl bg-white/20 dark:bg-slate-900/40 border border-slate-200/30 dark:border-slate-700 text-slate-400 dark:text-slate-400 backdrop-blur-sm active:scale-90">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
-        </button>
 
         <div className="text-center mb-12 z-10 flex flex-col items-center">
           <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">{isStopwatchMode ? t.stopwatch : t.deepSession}</h4>

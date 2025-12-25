@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Theme, AccentColor, FocusSession, AppConfig, PendingConfig, FocusSound, AppFont, Screen } from '../types';
-import AvatarCropper from './AvatarCropper';
 
 interface SettingsProps {
   theme: Theme; accentColor: AccentColor; font: AppFont; isSoundEnabled: boolean; focusSound: FocusSound;
@@ -35,7 +34,6 @@ const Settings: React.FC<SettingsProps> = ({
   const isDrawing = useRef(false);
   const [isUpdatingSignature, setIsUpdatingSignature] = useState(false);
   const [hasNewSignature, setHasNewSignature] = useState(false);
-  const [pendingAvatarUrl, setPendingAvatarUrl] = useState<string | null>(null);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -60,17 +58,10 @@ const Settings: React.FC<SettingsProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPendingAvatarUrl(reader.result as string);
+        onProfileImageChange(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
-    // Clear input so same file can be selected again if cancelled
-    e.target.value = '';
-  };
-
-  const onAvatarCrop = (base64: string) => {
-    onProfileImageChange(base64);
-    setPendingAvatarUrl(null);
   };
 
   const t = { 
@@ -79,14 +70,6 @@ const Settings: React.FC<SettingsProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-y-auto scroll-container no-scrollbar">
-      {pendingAvatarUrl && (
-        <AvatarCropper 
-          imageSrc={pendingAvatarUrl} 
-          onCrop={onAvatarCrop} 
-          onCancel={() => setPendingAvatarUrl(null)} 
-        />
-      )}
-
       <div className="px-8 pt-10 pb-24 w-full max-w-lg mx-auto">
         <header className="mb-12 animate-in fade-in duration-700">
           <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{t.config}</h2>

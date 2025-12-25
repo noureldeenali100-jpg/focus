@@ -254,10 +254,6 @@ const App: React.FC = () => {
     if (isDark) root.classList.add('dark'); else root.classList.remove('dark');
     root.setAttribute('lang', 'en');
     root.setAttribute('dir', 'ltr');
-    
-    // Update theme-color to match background for seamless edge-to-edge status bar
-    const color = isDark ? '#020617' : '#f8fafc';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
   }, [state.theme]);
 
   useEffect(() => {
@@ -337,31 +333,6 @@ const App: React.FC = () => {
     return () => cancelAnimationFrame(animationFrame);
   }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, finalizeSession]);
 
-  useEffect(() => {
-    const requestFS = () => {
-      const docEl = document.documentElement;
-      if (!document.fullscreenElement) {
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen().catch(() => {});
-        } else if ((docEl as any).webkitRequestFullscreen) {
-          (docEl as any).webkitRequestFullscreen();
-        } else if ((docEl as any).mozRequestFullScreen) {
-          (docEl as any).mozRequestFullScreen();
-        } else if ((docEl as any).msRequestFullscreen) {
-          (docEl as any).msRequestFullscreen();
-        }
-      }
-    };
-
-    window.addEventListener('click', requestFS, { once: true });
-    window.addEventListener('touchstart', requestFS, { once: true });
-    
-    return () => {
-      window.removeEventListener('click', requestFS);
-      window.removeEventListener('touchstart', requestFS);
-    };
-  }, []);
-
   const currentTheme = useMemo(() => ({
     blue: { main: '#2563eb', light: '#eff6ff', dark: '#1e40af', subtle: 'rgba(37, 99, 235, 0.1)' },
     emerald: { main: '#10b981', light: '#ecfdf5', dark: '#065f46', subtle: 'rgba(16, 185, 129, 0.1)' },
@@ -383,133 +354,134 @@ const App: React.FC = () => {
         '--accent-dark': currentTheme.dark, 
         '--accent-subtle': currentTheme.subtle 
       } as any} 
-      className="w-full h-full font-sans dark:bg-slate-950 bg-white overflow-hidden"
+      className="flex items-center justify-center min-h-screen w-full font-sans dark:bg-slate-950 bg-slate-100"
     >
-      <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav}>
-        {state.currentScreen === Screen.ONBOARDING && (
-          <Onboarding onComplete={(name, signature) => setState(p => ({
-            ...p, userName: name, signatureImage: signature, isFirstTime: false, currentScreen: Screen.HOME
-          }))} />
-        )}
-        
-        {state.currentScreen === Screen.HOME && (
-          <Focus 
-            userName={state.userName} 
-            profileImage={state.profileImage} 
-            tasks={state.tasks} 
-            activeTaskId={state.activeTaskId} 
-            timerSeconds={timerDisplaySeconds} 
-            totalSeconds={state.timerTotalDurationSeconds} 
-            isTimerActive={isTimerRunning} 
-            focusSound={state.focusSound} 
-            onToggleTimer={toggleTimerAction} 
-            onToggleMode={() => { 
-              if (isTimerRunning || state.timerPausedRemainingSeconds !== null) finalizeSession('canceled'); 
-              setState(prev => ({ 
+      <div className="w-full h-full md:max-w-sm md:h-[800px] md:rounded-[48px] md:shadow-2xl overflow-hidden bg-white dark:bg-slate-900 relative">
+        <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav}>
+          {state.currentScreen === Screen.ONBOARDING && (
+            <Onboarding onComplete={(name, signature) => setState(p => ({
+              ...p, userName: name, signatureImage: signature, isFirstTime: false, currentScreen: Screen.HOME
+            }))} />
+          )}
+          
+          {state.currentScreen === Screen.HOME && (
+            <Focus 
+              userName={state.userName} 
+              profileImage={state.profileImage} 
+              tasks={state.tasks} 
+              activeTaskId={state.activeTaskId} 
+              timerSeconds={timerDisplaySeconds} 
+              totalSeconds={state.timerTotalDurationSeconds} 
+              isTimerActive={isTimerRunning} 
+              focusSound={state.focusSound} 
+              onToggleTimer={toggleTimerAction} 
+              onToggleMode={() => { 
+                if (isTimerRunning || state.timerPausedRemainingSeconds !== null) finalizeSession('canceled'); 
+                setState(prev => ({ 
+                  ...prev, 
+                  timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0, 
+                  timerEndTimestamp: null, 
+                  timerPausedRemainingSeconds: null, 
+                  activeSession: null 
+                })); 
+              }} 
+              onSetTimerSeconds={(s) => setState(prev => ({ 
+                ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null, activeSession: null 
+              }))} 
+              onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))} 
+            />
+          )}
+          
+          {state.currentScreen === Screen.TASKS && (
+            <Tasks 
+              tasks={state.tasks} 
+              activeTaskId={state.activeTaskId} 
+              isTimerActive={isTimerRunning} 
+              onAddTask={(text) => setState(p => ({
+                ...p, 
+                tasks: [...p.tasks, {
+                  id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null
+                }]
+              }))} 
+              onToggleTask={(id) => { 
+                setState(p => { 
+                  const task = p.tasks.find(t => t.id === id); 
+                  if (!task) return p; 
+                  if (!task.completed) playFeedbackSound('task'); 
+                  return { 
+                    ...p, 
+                    activeTaskId: (p.activeTaskId === id && !task.completed) ? null : p.activeTaskId, 
+                    balance: task.completed ? p.balance : p.balance + 50, 
+                    tasks: p.tasks.map(t => t.id === id ? {
+                      ...t, completed: !t.completed, completedAt: !t.completed ? Date.now() : null
+                    } : t) 
+                  }; 
+                }); 
+              }} 
+              onDeleteTask={(id) => setState(p => ({
+                ...p, tasks: p.tasks.filter(t => t.id !== id), activeTaskId: p.activeTaskId === id ? null : p.activeTaskId
+              }))} 
+              onSetActiveTask={(id) => setState(p => ({ ...p, activeTaskId: id }))} 
+            />
+          )}
+          
+          {state.currentScreen === Screen.ALLOWED_APPS && (
+            <AllowedApps 
+              appTimers={state.appTimers} 
+              cycleAppIds={state.cycleAppIds} 
+              appConfigs={{ wa: state.globalAppConfig, tg: state.globalAppConfig }} 
+              unlockRequests={state.unlockRequests} 
+              customApps={state.customApps} 
+              minWaitMs={state.minWaitMs} 
+              onRequestUnlock={(appId) => setState(prev => ({ 
+                ...prev, unlockRequests: { ...prev.unlockRequests, [appId]: { appId, requestedAt: Date.now(), expiresAt: null } } 
+              }))} 
+              onAddCustomApp={(app) => setState(p => ({ ...p, customApps: [...p.customApps, app] }))} 
+            />
+          )}
+          
+          {state.currentScreen === Screen.SETTINGS && (
+            <Settings 
+              theme={state.theme} 
+              accentColor={state.accentColor} 
+              font={state.font} 
+              isSoundEnabled={state.isSoundEnabled} 
+              focusSound={state.focusSound} 
+              userName={state.userName} 
+              profileImage={state.profileImage} 
+              signatureImage={state.signatureImage} 
+              minWaitMs={state.minWaitMs} 
+              usageMs={state.usageMs} 
+              sessionLogs={state.sessionLogs} 
+              globalAppConfig={state.globalAppConfig} 
+              pendingGlobalConfig={state.pendingGlobalConfig} 
+              onThemeChange={(t) => setState(p => ({ ...p, theme: t }))} 
+              onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))} 
+              onFontChange={(f) => setState(p => ({ ...p, font: f }))} 
+              onToggleSound={() => setState(p => ({ ...p, isSoundEnabled: !p.isSoundEnabled }))} 
+              onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))} 
+              onNameChange={(name) => setState(p => ({ ...p, userName: name }))} 
+              onProfileImageChange={(img) => setState(p => img.startsWith('data:image/png') ? { ...p, signatureImage: img } : { ...p, profileImage: img })} 
+              onWaitChange={(ms) => setState(p => ({ ...p, minWaitMs: ms }))} 
+              onUsageChange={(ms) => setState(p => ({ ...p, usageMs: ms }))} 
+              onRequestConfigUpdate={(a, l) => setState(prev => ({
                 ...prev, 
-                timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0, 
-                timerEndTimestamp: null, 
-                timerPausedRemainingSeconds: null, 
-                activeSession: null 
-              })); 
-            }} 
-            onSetTimerSeconds={(s) => setState(prev => ({ 
-              ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null, activeSession: null 
-            }))} 
-            onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))} 
-          />
-        )}
-        
-        {state.currentScreen === Screen.TASKS && (
-          <Tasks 
-            tasks={state.tasks} 
-            activeTaskId={state.activeTaskId} 
-            isTimerActive={isTimerRunning} 
-            onAddTask={(text) => setState(p => ({
-              ...p, 
-              tasks: [...p.tasks, {
-                id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null
-              }]
-            }))} 
-            onToggleTask={(id) => { 
-              setState(p => { 
-                const task = p.tasks.find(t => t.id === id); 
-                if (!task) return p; 
-                if (!task.completed) playFeedbackSound('task'); 
-                return { 
-                  ...p, 
-                  activeTaskId: (p.activeTaskId === id && !task.completed) ? null : p.activeTaskId, 
-                  balance: task.completed ? p.balance : p.balance + 50, 
-                  tasks: p.tasks.map(t => t.id === id ? {
-                    ...t, completed: !t.completed, completedAt: !t.completed ? Date.now() : null
-                  } : t) 
-                }; 
-              }); 
-            }} 
-            onDeleteTask={(id) => setState(p => ({
-              ...p, tasks: p.tasks.filter(t => t.id !== id), activeTaskId: p.activeTaskId === id ? null : p.activeTaskId
-            }))} 
-            onSetActiveTask={(id) => setState(p => ({ ...p, activeTaskId: id }))} 
-          />
-        )}
-        
-        {state.currentScreen === Screen.ALLOWED_APPS && (
-          <AllowedApps 
-            appTimers={state.appTimers} 
-            cycleAppIds={state.cycleAppIds} 
-            appConfigs={{ wa: state.globalAppConfig, tg: state.globalAppConfig }} 
-            unlockRequests={state.unlockRequests} 
-            customApps={state.customApps} 
-            minWaitMs={state.minWaitMs} 
-            onRequestUnlock={(appId) => setState(prev => ({ 
-              ...prev, unlockRequests: { ...prev.unlockRequests, [appId]: { appId, requestedAt: Date.now(), expiresAt: null } } 
-            }))} 
-            onAddCustomApp={(app) => setState(p => ({ ...p, customApps: [...p.customApps, app] }))} 
-          />
-        )}
-        
-        {state.currentScreen === Screen.SETTINGS && (
-          <Settings 
-            theme={state.theme} 
-            accentColor={state.accentColor} 
-            font={state.font} 
-            isSoundEnabled={state.isSoundEnabled} 
-            focusSound={state.focusSound} 
-            userName={state.userName} 
-            profileImage={state.profileImage} 
-            signatureImage={state.signatureImage} 
-            minWaitMs={state.minWaitMs} 
-            usageMs={state.usageMs} 
-            sessionLogs={state.sessionLogs} 
-            globalAppConfig={state.globalAppConfig} 
-            pendingGlobalConfig={state.pendingGlobalConfig} 
-            onThemeChange={(t) => setState(p => ({ ...p, theme: t }))} 
-            onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))} 
-            onFontChange={(f) => setState(p => ({ ...p, font: f }))} 
-            onToggleSound={() => setState(p => ({ ...p, isSoundEnabled: !p.isSoundEnabled }))} 
-            onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))} 
-            onNameChange={(name) => setState(p => ({ ...p, userName: name }))} 
-            onProfileImageChange={(img) => setState(p => img.startsWith('data:image/png') ? { ...p, signatureImage: img } : { ...p, profileImage: img })} 
-            onWaitChange={(ms) => setState(p => ({ ...p, minWaitMs: ms }))} 
-            onUsageChange={(ms) => setState(p => ({ ...p, usageMs: ms }))} 
-            onRequestConfigUpdate={(a, l) => setState(prev => ({
-              ...prev, 
-              pendingGlobalConfig: { 
-                config: { allowedMs: a * 60000, lockMs: l * 60000 }, 
-                requestedAt: Date.now() 
-              } 
-            }))} 
-            onNavigate={navigate} 
-          />
-        )}
-        
-        {state.currentScreen === Screen.MARKET && <Market balance={state.balance} onPurchase={() => {}} />}
-        
-        {state.currentScreen === Screen.SESSION_HISTORY && (
-          <SessionHistory sessions={state.sessionLogs} onBack={() => navigate(Screen.SETTINGS)} />
-        )}
-      </Layout>
-
+                pendingGlobalConfig: { 
+                  config: { allowedMs: a * 60000, lockMs: l * 60000 }, 
+                  requestedAt: Date.now() 
+                } 
+              }))} 
+              onNavigate={navigate} 
+            />
+          )}
+          
+          {state.currentScreen === Screen.MARKET && <Market balance={state.balance} onPurchase={() => {}} />}
+          
+          {state.currentScreen === Screen.SESSION_HISTORY && (
+            <SessionHistory sessions={state.sessionLogs} onBack={() => navigate(Screen.SETTINGS)} />
+          )}
+        </Layout>
+      </div>
       {activeOverlay && (
         <BlockedOverlay 
           appName={activeOverlay.name} 

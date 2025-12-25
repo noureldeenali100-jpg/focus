@@ -50,16 +50,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
 
   return (
     <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      <div className="h-[env(safe-area-inset-top,0px)] bg-transparent w-full shrink-0" />
-      
-      <main className={`flex-1 scroll-container no-scrollbar relative z-10 ${showNav ? 'pb-[calc(72px+env(safe-area-inset-bottom,12px))]' : ''}`}>
+      <main className={`flex-1 scroll-container no-scrollbar relative z-10 ${showNav ? 'pb-24' : ''}`}>
         <div key={currentScreen} className="page-transition h-full w-full">
           {children}
         </div>
       </main>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-[60]">
+        <nav className="absolute bottom-0 left-0 right-0 pt-3 pb-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-[60]">
           {tabs.map((tab) => {
             const isActive = currentScreen === tab.screen;
             return (
