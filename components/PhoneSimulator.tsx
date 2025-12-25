@@ -36,32 +36,30 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
   const getStatusLabel = (appId: string, app: AppInfo) => {
     if (isUnlocked) return null;
     
-    // Core permanent blocks
     if (app.isPermanentBlock) {
-        return <span className="text-[7px] bg-red-900 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">CORE</span>;
+        return <span className="text-[7px] bg-red-900 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">CORE</span>;
     }
 
-    // Check if app has an active/pending unlock request
     const request = unlockRequests[appId];
     if (request) {
       if (request.expiresAt && Date.now() < request.expiresAt) {
-        return <span className="text-[8px] bg-emerald-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">AVAIL</span>;
+        return <span className="text-[8px] bg-emerald-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">AVAIL</span>;
       }
       if (!request.expiresAt) {
-        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">WAITING</span>;
+        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">WAITING</span>;
       }
     }
 
     if (isTimerRunning && !app.isAllowed) {
-        return <span className="text-[8px] bg-red-600 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">FOCUS</span>;
+        return <span className="text-[8px] bg-red-600 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">FOCUS</span>;
     }
 
-    if (!app.isAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10">LOCKED</span>;
+    if (!app.isAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10 animate-in zoom-in duration-300">LOCKED</span>;
     
     if (cycleAppIds.includes(appId)) {
       const timer = appTimers[appId];
       if (timer?.lockedUntil && timer.lockedUntil > Date.now()) {
-        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10">LOCKED</span>;
+        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10 animate-in zoom-in duration-300">LOCKED</span>;
       }
     }
     return null;
@@ -70,7 +68,7 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
   const allApps = CYCLE_APPS_BASE.concat(UNALLOWED_APPS).concat(customApps);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-white relative w-full">
+    <div className="flex flex-col h-full bg-slate-900 text-white relative w-full animate-in fade-in duration-500">
       <div className="h-8 flex justify-between items-center px-6 pt-2 text-[10px] font-bold shrink-0">
         <span>{time}</span>
         <div className="flex items-center space-x-1">
@@ -80,7 +78,7 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
       </div>
 
       <div className="flex-1 p-8 grid grid-cols-4 content-start gap-x-4 gap-y-10 overflow-y-auto no-scrollbar">
-        {allApps.map(app => {
+        {allApps.map((app, index) => {
           const request = unlockRequests[app.id];
           const isActuallyUnlocked = request?.expiresAt && Date.now() < request.expiresAt;
           
@@ -88,10 +86,14 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
             <button 
               key={app.id} 
               onClick={() => onAppClick(app.id, app.name, app.isAllowed)}
-              className="flex flex-col items-center space-y-2 active:scale-90 transition-transform relative"
+              className="flex flex-col items-center space-y-2 active:scale-90 transition-all relative select-none animate-in zoom-in-95 duration-300"
+              style={{ animationDelay: `${index * 30}ms` }}
             >
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${app.color} shadow-lg relative transition-opacity ${(!app.isAllowed && !isActuallyUnlocked) ? 'opacity-40 grayscale' : 'opacity-100'}`}>
-                <AppIcon appId={app.id} className="w-full h-full p-3.5" />
+              <div 
+                className={`w-14 h-14 bg-transparent relative transition-all duration-300 
+                ${(!app.isAllowed && !isActuallyUnlocked) ? 'opacity-40 grayscale' : 'opacity-100 grayscale-0'} hover:scale-105 active:scale-90`}
+              >
+                <AppIcon appId={app.id} className="w-full h-full" />
                 {getStatusLabel(app.id, app)}
               </div>
               <span className="text-[10px] font-medium opacity-90 truncate w-full text-center">{app.name}</span>
@@ -103,7 +105,7 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
       <div className="h-12 flex justify-center items-center pb-4 shrink-0">
          <button 
           onClick={onExit}
-          className="w-32 h-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors active:scale-95"
+          className="w-32 h-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-all active:scale-95 duration-200"
           aria-label="Exit Simulator"
         />
       </div>

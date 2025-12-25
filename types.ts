@@ -76,6 +76,7 @@ export interface Task {
 export type Theme = 'light' | 'dark' | 'system';
 export type AccentColor = 'blue' | 'emerald' | 'purple' | 'amber' | 'rose' | 'slate';
 export type FocusSound = 'none' | 'rain' | 'clock' | 'library';
+export type AppFont = 'Inter' | 'System' | 'Serif' | 'Mono';
 
 export interface State {
   currentScreen: Screen;
@@ -97,6 +98,7 @@ export interface State {
   activeTaskId: null | string;
   theme: Theme;
   accentColor: AccentColor;
+  font: AppFont;
   language: 'en' | 'ar';
   appTimers: Record<string, AppTimer>;
   globalAppConfig: AppConfig; 

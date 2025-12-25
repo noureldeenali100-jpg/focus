@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Screen, State, Theme, AccentColor, FocusSession, UnlockRequest, AppInfo, AppConfig, FocusSound } from './types';
+import { Screen, State, Theme, AccentColor, FocusSession, UnlockRequest, AppInfo, AppConfig, FocusSound, AppFont } from './types';
 import { 
   CYCLE_USAGE_LIMIT_MS, 
   CYCLE_LOCK_DURATION_MS, 
@@ -22,7 +22,6 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('focus_guardian_v14_state');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Migration logic: If the saved state has appConfigs record, consolidate it into globalAppConfig
       const globalConfig = parsed.globalAppConfig || (parsed.appConfigs?.wa ? parsed.appConfigs.wa : { allowedMs: CYCLE_USAGE_LIMIT_MS, lockMs: CYCLE_LOCK_DURATION_MS });
       
       return {
@@ -34,6 +33,7 @@ const App: React.FC = () => {
         usageMs: parsed.usageMs || 60 * 60 * 1000,
         theme: parsed.theme || 'system',
         accentColor: parsed.accentColor || 'blue',
+        font: parsed.font || 'Inter',
         language: parsed.language || 'en',
         profileImage: parsed.profileImage || null,
         signatureImage: parsed.signatureImage || null,
@@ -69,6 +69,7 @@ const App: React.FC = () => {
       activeTaskId: null,
       theme: 'system',
       accentColor: 'blue',
+      font: 'Inter',
       language: 'en',
       appTimers: {},
       globalAppConfig: { allowedMs: CYCLE_USAGE_LIMIT_MS, lockMs: CYCLE_LOCK_DURATION_MS },
@@ -86,7 +87,6 @@ const App: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<{ name: string; waitRemainingMs: number | null } | null>(null);
 
-  // Audio Engine Refs
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioNodesRef = useRef<any[]>([]);
   const clockIntervalRef = useRef<number | null>(null);
@@ -122,22 +122,17 @@ const App: React.FC = () => {
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
-      
       const whiteNoise = ctx.createBufferSource();
       whiteNoise.buffer = noiseBuffer;
       whiteNoise.loop = true;
-      
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.value = 800;
-      
       const gain = ctx.createGain();
       gain.gain.value = 0.15;
-      
       whiteNoise.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
-      
       whiteNoise.start();
       audioNodesRef.current.push(whiteNoise);
     } else if (state.focusSound === 'clock') {
@@ -153,12 +148,31 @@ const App: React.FC = () => {
         osc.start();
         osc.stop(ctx.currentTime + 0.05);
       }, 1000);
+    } else if (state.focusSound === 'library') {
+      const bufferSize = 2 * ctx.sampleRate;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        const out = (lastOut + (0.02 * white)) / 1.02;
+        output[i] = out * 3.5; 
+        lastOut = out;
+      }
+      const brownNoise = ctx.createBufferSource();
+      brownNoise.buffer = noiseBuffer;
+      brownNoise.loop = true;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.08;
+      brownNoise.connect(gain);
+      gain.connect(ctx.destination);
+      brownNoise.start();
+      audioNodesRef.current.push(brownNoise);
     }
 
     return stopAudio;
   }, [isTimerRunning, state.focusSound]);
 
-  // Unified config promotion logic
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -268,6 +282,19 @@ const App: React.FC = () => {
   }, [state.theme]);
 
   useEffect(() => {
+    const root = window.document.documentElement;
+    let fontFamily = "'Inter', sans-serif";
+    switch (state.font) {
+      case 'System': fontFamily = "system-ui, sans-serif"; break;
+      case 'Serif': fontFamily = "Georgia, serif"; break;
+      case 'Mono': fontFamily = "ui-monospace, monospace"; break;
+      default: fontFamily = "'Inter', sans-serif"; break;
+    }
+    // Updated to set the CSS variable for reliable application across Tailwind utilities
+    root.style.setProperty('--font-main', fontFamily);
+  }, [state.font]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
       let hasChanges = false;
@@ -360,6 +387,7 @@ const App: React.FC = () => {
           totalSeconds={state.timerTotalDurationSeconds}
           isTimerActive={isTimerRunning}
           language={state.language}
+          focusSound={state.focusSound}
           onToggleTimer={() => {
             const now = Date.now();
             if (state.timerPausedRemainingSeconds !== null || (!state.timerEndTimestamp && state.timerPausedRemainingSeconds === null)) {
@@ -381,6 +409,7 @@ const App: React.FC = () => {
             setState(prev => ({ ...prev, timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0, timerEndTimestamp: null, timerPausedRemainingSeconds: null, activeSession: null }));
           }}
           onSetTimerSeconds={(s) => setState(prev => ({ ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null, activeSession: null }))}
+          onSetFocusSound={(s) => setState(p => ({...p, focusSound: s}))}
         />
       );
       case Screen.TASKS: return (
@@ -403,17 +432,17 @@ const App: React.FC = () => {
         <AllowedApps 
           appTimers={state.appTimers} 
           cycleAppIds={state.cycleAppIds} 
-          appConfigs={{wa: state.globalAppConfig, tg: state.globalAppConfig}} // Mock record for compatibility
+          appConfigs={{wa: state.globalAppConfig, tg: state.globalAppConfig}} 
           unlockRequests={state.unlockRequests}
           customApps={state.customApps}
           minWaitMs={state.minWaitMs}
           onRequestUnlock={requestUnlock}
-          onAddCustomApp={(name) => setState(p => ({...p, customApps: [...p.customApps, { id: `custom_${Date.now()}`, name, icon: name.substring(0, 2).toUpperCase(), isAllowed: false, color: DEFAULT_APP_COLORS[Math.floor(Math.random() * DEFAULT_APP_COLORS.length)] }]}))}
+          onAddCustomApp={(app) => setState(p => ({...p, customApps: [...p.customApps, app]}))}
         />
       );
       case Screen.SETTINGS: return (
         <Settings 
-          theme={state.theme} accentColor={state.accentColor} 
+          theme={state.theme} accentColor={state.accentColor} font={state.font}
           isSoundEnabled={state.isSoundEnabled}
           focusSound={state.focusSound}
           userName={state.userName}
@@ -427,6 +456,7 @@ const App: React.FC = () => {
           pendingGlobalConfig={state.pendingGlobalConfig}
           onThemeChange={(t) => setState(p => ({...p, theme: t}))} 
           onAccentChange={(c) => setState(p => ({...p, accentColor: c}))}
+          onFontChange={(f) => setState(p => ({...p, font: f}))}
           onToggleSound={() => setState(p => ({...p, isSoundEnabled: !p.isSoundEnabled}))}
           onSetFocusSound={(s) => setState(p => ({...p, focusSound: s}))}
           onNameChange={(name) => setState(p => ({...p, userName: name}))}

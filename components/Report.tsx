@@ -33,7 +33,7 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
     <div className="p-8 pb-32 bg-white dark:bg-slate-900 min-h-full">
       <header className="mb-8">
         <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">Reports</h2>
-        <p className="text-slate-500 dark:text-slate-300 text-sm font-medium">Your discipline tracked</p>
+        <p className="text-slate-500 dark:text-slate-300 text-sm font-medium">See your progress</p>
       </header>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
@@ -49,12 +49,12 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/30 p-6 rounded-[32px] border border-emerald-100 dark:border-emerald-800">
           <p className="text-[10px] font-black text-emerald-400 dark:text-emerald-300 uppercase tracking-widest mb-1">Status</p>
-          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-2">Guarding</p>
+          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-2">Active</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[32px] p-6 shadow-sm mb-10">
-        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-6 px-2">Attempts per Platform</h3>
+        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-6 px-2">Blocked apps</h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} layout="vertical">
@@ -98,7 +98,7 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest px-2">Recent Activity</h3>
+        <h3 className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest px-2">Latest activity</h3>
         {logs.length === 0 ? (
           <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/40 rounded-[32px] border border-dashed border-slate-200 dark:border-slate-700">
             <p className="text-sm italic text-slate-400 dark:text-slate-500 font-medium">No distractions detected.</p>

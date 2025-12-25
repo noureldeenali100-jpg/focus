@@ -11,7 +11,7 @@ const Market: React.FC<MarketProps> = ({ balance, onPurchase }) => {
     <div className="p-8 pb-32 bg-white dark:bg-slate-900 min-h-full">
       <header className="mb-8">
         <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">Market</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Exchange your hard-earned focus</p>
+        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Spend your focus points here.</p>
       </header>
 
       <div 
@@ -29,7 +29,7 @@ const Market: React.FC<MarketProps> = ({ balance, onPurchase }) => {
       </div>
 
       <div className="space-y-6">
-        <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Available Items</h3>
+        <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Items to buy</h3>
         
         <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-6 rounded-[32px] shadow-sm flex flex-col space-y-6">
           <div className="flex justify-between items-start">
@@ -41,8 +41,8 @@ const Market: React.FC<MarketProps> = ({ balance, onPurchase }) => {
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
-                <p className="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">Digital Holiday</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Unblock all apps for 1 Hour</p>
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">Unlock all apps</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Use any app for 1 hour</p>
               </div>
             </div>
             <div className="bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-xl text-xs font-black text-slate-600 dark:text-slate-300">

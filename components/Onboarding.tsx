@@ -68,20 +68,29 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     if (step !== 'SIGNATURE') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // Lower latency context for better tracking
-    const ctx = canvas.getContext('2d', { desynchronized: true });
-    if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    
-    // Initial color based on theme
-    ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    const initCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Set physical resolution
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      
+      const ctx = canvas.getContext('2d', { desynchronized: true });
+      if (!ctx) return;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
+      ctx.lineWidth = 2.5 * dpr;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    };
+
+    const handle = requestAnimationFrame(initCanvas);
+    return () => cancelAnimationFrame(handle);
   }, [step]);
 
   const getPointerPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -98,21 +107,25 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       clientY = (e as React.MouseEvent).clientY;
     }
 
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
+    // Precise physical mapping
+    const x = (clientX - rect.left) * (canvas.width / rect.width);
+    const y = (clientY - rect.top) * (canvas.height / rect.height);
+
+    return { x, y };
   }, []);
 
   const startSigning = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+    if ('touches' in e) {
+      if (e.cancelable) e.preventDefault();
+    }
     const pos = getPointerPos(e);
     setIsSigning(true);
     lastPoint.current = pos;
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx) {
-      // Ensure real-time color compliance on start
+      const dpr = window.devicePixelRatio || 1;
       ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
+      ctx.lineWidth = 2.5 * dpr;
       ctx.beginPath();
       ctx.moveTo(pos.x, pos.y);
     }
@@ -120,17 +133,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isSigning || !lastPoint.current) return;
-    e.preventDefault();
+    if ('touches' in e) {
+      if (e.cancelable) e.preventDefault();
+    }
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) return;
     
-    // Maintain real-time theme compliance during drawing
-    ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-
     const pos = getPointerPos(e);
     
-    // Precise quadratic curve for smoothing
+    // Smoothing via mid-point quadratic curve
     const midX = (lastPoint.current.x + pos.x) / 2;
     const midY = (lastPoint.current.y + pos.y) / 2;
 
@@ -151,7 +163,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasSigned(false);
     setSignature(null);
   };
@@ -170,7 +183,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       </div>
       <h1 className="text-4xl font-black text-slate-800 dark:text-slate-100 mb-6 leading-tight tracking-tighter">Focus Guardian</h1>
       <p className="text-lg text-slate-500 dark:text-slate-300 leading-relaxed mb-10">
-        Welcome to your new disciplined life. What shall we call you?
+        Welcome! Let's get started. What's your name?
       </p>
       <input 
         type="text" 
@@ -198,7 +211,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
            <GuardianLogo />
         </div>
         <p className="leading-relaxed italic mb-6">
-          “I commit to staying disciplined, completing my tasks, and respecting the focus limits I set.”
+          “I promise to stay focused and finish my tasks.”
         </p>
         <label className="flex items-center space-x-3 cursor-pointer group">
           <input 
@@ -208,7 +221,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             className="w-6 h-6 rounded border-slate-300 dark:border-slate-700 focus:ring-[var(--accent-color)] bg-white dark:bg-slate-950"
             style={{ accentColor: 'var(--accent-color)' }}
           />
-          <span className="text-sm font-bold text-slate-700 dark:text-slate-200 text-left">I accept responsibility for my focus.</span>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200 text-left">I agree to focus.</span>
         </label>
       </div>
       <button 
@@ -224,9 +237,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const renderSignature = () => (
     <div className="flex-1 flex flex-col items-center justify-center px-10 text-center animate-in slide-in-from-right duration-500 bg-white dark:bg-slate-950">
-      <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">Seal the Pledge</h2>
+      <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">Sign the Promise</h2>
       <p className="text-slate-500 dark:text-slate-300 text-sm leading-relaxed mb-8">
-        Sign below to confirm your dedication. This handwritten signature is a personal focus pledge.
+        Sign below to start your focus journey.
       </p>
       
       <div className="w-full relative bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden mb-8 h-48">
@@ -259,7 +272,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           style={{ backgroundColor: hasSigned ? 'var(--accent-color)' : 'transparent' }}
           className={`flex-1 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${hasSigned ? 'text-white shadow-lg active:scale-95' : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed'}`}
         >
-          Sign Pledge
+          Save Signature
         </button>
       </div>
     </div>
@@ -270,9 +283,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-2xl flex items-center justify-center mb-6">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
       </div>
-      <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">Hard Blocking</h2>
+      <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">App Blocking</h2>
       <p className="text-slate-500 dark:text-slate-300 text-sm leading-relaxed mb-10">
-        Distracting apps are locked. To unlock them, you must request access and wait for a mandatory period. No exceptions.
+        Distracting apps will be blocked. To open them, you'll need to wait for a short time.
       </p>
       <button 
         onClick={nextStep}
@@ -289,9 +302,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
-      <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">Deep Focus</h2>
+      <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">Focus Sessions</h2>
       <p className="text-slate-500 dark:text-slate-300 text-sm leading-relaxed mb-10">
-        Set your goal, pick a task, and start the timer. The environment adapts to keep you focused until the session is complete.
+        Pick a task, set a timer, and stay focused until it's done.
       </p>
       <button 
         onClick={nextStep}
@@ -308,9 +321,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-inner">
         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">Ready to Guard</h2>
+      <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-4 tracking-tighter">You're Ready!</h2>
       <p className="text-slate-500 dark:text-slate-300 text-sm leading-relaxed mb-10">
-        Your digital sanctuary is prepared, {name}. The path to excellence starts with a single focused hour.
+        Everything is set up, {name}. Let's start focusing!
       </p>
       <button 
         onClick={nextStep}

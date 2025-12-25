@@ -10,6 +10,17 @@ export const UNALLOWED_APPS: AppInfo[] = [
   { id: 'ch', name: 'Chrome', icon: 'CH', isAllowed: false, color: 'bg-blue-400' },
 ];
 
+export const COMMON_APPS_TO_BLOCK: AppInfo[] = [
+  { id: 'nf', name: 'Netflix', icon: 'NF', isAllowed: false, color: 'bg-red-700' },
+  { id: 'rd', name: 'Reddit', icon: 'RD', isAllowed: false, color: 'bg-orange-600' },
+  { id: 'li', name: 'LinkedIn', icon: 'LI', isAllowed: false, color: 'bg-blue-700' },
+  { id: 'pi', name: 'Pinterest', icon: 'PI', isAllowed: false, color: 'bg-red-500' },
+  { id: 'ds', name: 'Discord', icon: 'DS', isAllowed: false, color: 'bg-indigo-500' },
+  { id: 'sp', name: 'Spotify', icon: 'SP', isAllowed: false, color: 'bg-emerald-500' },
+  { id: 'am', name: 'Amazon', icon: 'AM', isAllowed: false, color: 'bg-amber-500' },
+  { id: 'gh', name: 'GitHub', icon: 'GH', isAllowed: false, color: 'bg-slate-800' },
+];
+
 export const CYCLE_APPS_BASE: AppInfo[] = [
   { id: 'wa', name: 'WhatsApp', icon: 'WA', isAllowed: true, color: 'bg-emerald-500' },
   { id: 'tg', name: 'Telegram', icon: 'TG', isAllowed: true, color: 'bg-sky-500' },
