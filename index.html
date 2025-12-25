@@ -7,7 +7,11 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Progressier Integration (Replaces manual manifest link) -->
+    <link rel="manifest" href="https://progressier.app/A2JJtyHQ8pSrCd5DtvXN/progressier.json" />
+    <script src="https://progressier.app/A2JJtyHQ8pSrCd5DtvXN/script.js"></script>
+    
     <title>FocusGuardian - Stay Productive</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -149,16 +153,5 @@
   <body class="">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }).catch(registrationError => {
-            console.log('ServiceWorker registration failed: ', registrationError);
-          });
-        });
-      }
-    </script>
   </body>
 </html>
