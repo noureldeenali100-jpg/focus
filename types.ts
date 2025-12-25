@@ -5,7 +5,8 @@ export enum Screen {
   ALLOWED_APPS = 'ALLOWED_APPS',
   SETTINGS = 'SETTINGS',
   PHONE_SIMULATOR = 'PHONE_SIMULATOR',
-  MARKET = 'MARKET'
+  MARKET = 'MARKET',
+  SESSION_HISTORY = 'SESSION_HISTORY'
 }
 
 export interface AppInfo {

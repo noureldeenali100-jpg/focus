@@ -52,14 +52,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
     <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative transition-colors duration-500">
       <div className="h-[env(safe-area-inset-top,20px)] bg-transparent w-full shrink-0" />
       
-      <main className={`flex-1 overflow-y-auto no-scrollbar relative z-10 transition-opacity duration-300 ${showNav ? 'pb-[calc(72px+env(safe-area-inset-bottom,12px))]' : ''}`}>
+      <main className={`flex-1 scroll-container no-scrollbar relative z-10 transition-opacity duration-300 ${showNav ? 'pb-[calc(72px+env(safe-area-inset-bottom,12px))]' : ''}`}>
         <div key={currentScreen} className="page-transition h-full w-full">
           {children}
         </div>
       </main>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-50 animate-in slide-in-from-bottom duration-500">
+        <nav className="absolute bottom-0 left-0 right-0 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-[60] animate-in slide-in-from-bottom duration-500">
           {tabs.map((tab) => {
             const isActive = currentScreen === tab.screen;
             return (

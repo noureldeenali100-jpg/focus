@@ -8,30 +8,21 @@ type OnboardingStep = 'WELCOME' | 'COMMITMENT' | 'SIGNATURE' | 'TUTORIAL_BLOCKIN
 
 const GuardianLogo = () => (
   <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    {/* Guardian Head Silhouette - Disciplined & Strong */}
     <path 
       d="M50 12C32 12 18 26 18 45V68C18 78 30 88 50 88C70 88 82 78 82 68V45C82 26 68 12 50 12Z" 
       fill="white" 
     />
-    
-    {/* Minimalist Protective Hood/Mantle framing the face */}
     <path 
       d="M50 12C32 12 18 26 18 45V52H82V45C82 26 68 12 50 12Z" 
       fill="currentColor" 
       fillOpacity="0.12" 
     />
-    
-    {/* Face / Inner Focus Area */}
     <path 
       d="M30 45C30 34 39 25 50 25C61 25 70 34 70 45V65C70 72 61 78 50 78C39 78 30 72 30 65V45Z" 
       fill="white"
     />
-
-    {/* Calm, Focused Eyes - Horizontal slits conveying discipline */}
     <rect x="38" y="48" width="8" height="3" rx="1.5" fill="currentColor" fillOpacity="0.8" />
     <rect x="54" y="48" width="8" height="3" rx="1.5" fill="currentColor" fillOpacity="0.8" />
-
-    {/* Subtle Neck/Base line for authority */}
     <path 
       d="M40 82C40 82 45 85 50 85C55 85 60 82 60 82" 
       stroke="currentColor" 
@@ -48,9 +39,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [signature, setSignature] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
   
-  // Canvas refs for signature
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isSigning, setIsSigning] = useState(false);
+  const isSigning = useRef(false);
   const [hasSigned, setHasSigned] = useState(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
@@ -63,37 +53,27 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     else if (step === 'TUTORIAL_SUMMARY') onComplete(name, signature || '');
   };
 
-  // Canvas Drawing Logic
   useEffect(() => {
     if (step !== 'SIGNATURE') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const initCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      
-      // Set physical resolution
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      
-      const ctx = canvas.getContext('2d', { desynchronized: true });
-      if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    
+    const ctx = canvas.getContext('2d', { desynchronized: true, alpha: true });
+    if (!ctx) return;
 
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-      ctx.lineWidth = 2.5 * dpr;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-    };
-
-    const handle = requestAnimationFrame(initCanvas);
-    return () => cancelAnimationFrame(handle);
+    ctx.scale(dpr, dpr);
+    ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
   }, [step]);
 
-  const getPointerPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const getPointerPos = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
@@ -103,46 +83,36 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
+      clientX = (e as MouseEvent).clientX;
+      clientY = (e as MouseEvent).clientY;
     }
 
-    // Precise physical mapping
-    const x = (clientX - rect.left) * (canvas.width / rect.width);
-    const y = (clientY - rect.top) * (canvas.height / rect.height);
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
 
-    return { x, y };
-  }, []);
-
-  const startSigning = (e: React.MouseEvent | React.TouchEvent) => {
-    if ('touches' in e) {
-      if (e.cancelable) e.preventDefault();
-    }
+  const onStart = (e: React.MouseEvent | React.TouchEvent) => {
     const pos = getPointerPos(e);
-    setIsSigning(true);
+    isSigning.current = true;
     lastPoint.current = pos;
+    
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx) {
-      const dpr = window.devicePixelRatio || 1;
-      ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-      ctx.lineWidth = 2.5 * dpr;
       ctx.beginPath();
       ctx.moveTo(pos.x, pos.y);
     }
   };
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isSigning || !lastPoint.current) return;
-    if ('touches' in e) {
-      if (e.cancelable) e.preventDefault();
-    }
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx || !canvas) return;
+  const onMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isSigning.current || !lastPoint.current) return;
+    if (e.cancelable) e.preventDefault();
     
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
     const pos = getPointerPos(e);
-    
-    // Smoothing via mid-point quadratic curve
     const midX = (lastPoint.current.x + pos.x) / 2;
     const midY = (lastPoint.current.y + pos.y) / 2;
 
@@ -150,11 +120,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     ctx.stroke();
 
     lastPoint.current = pos;
-    setHasSigned(true);
+    if (!hasSigned) setHasSigned(true);
   };
 
-  const stopSigning = () => {
-    setIsSigning(false);
+  const onEnd = () => {
+    isSigning.current = false;
     lastPoint.current = null;
   };
 
@@ -163,7 +133,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasSigned(false);
     setSignature(null);
@@ -172,7 +141,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const saveSignature = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    setSignature(canvas.toDataURL('image/png'));
+    setSignature(canvas.toDataURL('image/png', 0.8));
     nextStep();
   };
 
@@ -242,16 +211,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         Sign below to start your focus journey.
       </p>
       
-      <div className="w-full relative bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden mb-8 h-48">
+      <div className="w-full relative bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden mb-8 h-48 touch-none">
         <canvas 
           ref={canvasRef}
-          onMouseDown={startSigning}
-          onMouseMove={draw}
-          onMouseUp={stopSigning}
-          onMouseLeave={stopSigning}
-          onTouchStart={startSigning}
-          onTouchMove={draw}
-          onTouchEnd={stopSigning}
+          onMouseDown={onStart}
+          onMouseMove={onMove}
+          onMouseUp={onEnd}
+          onMouseLeave={onEnd}
+          onTouchStart={onStart}
+          onTouchMove={onMove}
+          onTouchEnd={onEnd}
           className="w-full h-full cursor-crosshair touch-none"
         />
         {!hasSigned && (
@@ -262,7 +231,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       <div className="flex gap-4 w-full">
         <button 
           onClick={clearSignature}
-          className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95"
+          className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-transform"
         >
           Clear
         </button>
@@ -336,7 +305,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   );
 
   return (
-    <div className="h-full w-full bg-white dark:bg-slate-950 flex flex-col">
+    <div className="h-full w-full bg-white dark:bg-slate-950 flex flex-col overflow-hidden">
       {step === 'WELCOME' && renderWelcome()}
       {step === 'COMMITMENT' && renderCommitment()}
       {step === 'SIGNATURE' && renderSignature()}

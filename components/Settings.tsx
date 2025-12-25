@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { Theme, AccentColor, FocusSession, AppConfig, PendingConfig, FocusSound, AppFont } from '../types';
+import { Theme, AccentColor, FocusSession, AppConfig, PendingConfig, FocusSound, AppFont, Screen } from '../types';
 
 interface SettingsProps {
   theme: Theme;
@@ -27,6 +27,7 @@ interface SettingsProps {
   onWaitChange: (ms: number) => void;
   onUsageChange: (ms: number) => void;
   onRequestConfigUpdate: (allowedMins: number, lockMins: number) => void;
+  onNavigate: (s: Screen) => void;
 }
 
 const getAccentHex = (color: AccentColor): string => {
@@ -45,16 +46,15 @@ const Settings: React.FC<SettingsProps> = ({
   theme, accentColor, font, isSoundEnabled, focusSound, userName, profileImage, signatureImage, language,
   minWaitMs, usageMs, sessionLogs, globalAppConfig, pendingGlobalConfig,
   onThemeChange, onAccentChange, onFontChange, onToggleSound, onSetFocusSound, onNameChange, onProfileImageChange, onLanguageChange,
-  onWaitChange, onUsageChange, onRequestConfigUpdate
+  onWaitChange, onUsageChange, onRequestConfigUpdate, onNavigate
 }) => {
   const accentColors: AccentColor[] = ['blue', 'emerald', 'purple', 'amber', 'rose', 'slate'];
   const fonts: AppFont[] = ['Inter', 'System', 'Serif', 'Mono'];
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Signature Drawing State
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
   const [isUpdatingSignature, setIsUpdatingSignature] = useState(false);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [hasNewSignature, setHasNewSignature] = useState(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
@@ -63,30 +63,22 @@ const Settings: React.FC<SettingsProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const initCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      
-      const ctx = canvas.getContext('2d', { desynchronized: true });
-      if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    
+    const ctx = canvas.getContext('2d', { desynchronized: true, alpha: true });
+    if (!ctx) return;
 
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-      ctx.lineWidth = 2.5 * dpr;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-    };
-
-    const handle = requestAnimationFrame(initCanvas);
-    return () => cancelAnimationFrame(handle);
+    ctx.scale(dpr, dpr);
+    ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
   }, [isUpdatingSignature]);
 
-  const getPointerPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const getPointerPos = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
@@ -96,43 +88,35 @@ const Settings: React.FC<SettingsProps> = ({
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
+      clientX = (e as MouseEvent).clientX;
+      clientY = (e as MouseEvent).clientY;
     }
 
-    const x = (clientX - rect.left) * (canvas.width / rect.width);
-    const y = (clientY - rect.top) * (canvas.height / rect.height);
-    
-    return { x, y };
-  }, []);
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    if ('touches' in e) {
-      if (e.cancelable) e.preventDefault();
-    }
     const pos = getPointerPos(e);
-    setIsDrawing(true);
+    isDrawing.current = true;
     lastPoint.current = pos;
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx) {
-      const dpr = window.devicePixelRatio || 1;
-      ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-      ctx.lineWidth = 2.5 * dpr;
       ctx.beginPath();
       ctx.moveTo(pos.x, pos.y);
     }
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing || !lastPoint.current) return;
-    if ('touches' in e) {
-      if (e.cancelable) e.preventDefault();
-    }
+    if (!isDrawing.current || !lastPoint.current) return;
+    if (e.cancelable) e.preventDefault();
+    
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
 
     const pos = getPointerPos(e);
-    
     const midX = (lastPoint.current.x + pos.x) / 2;
     const midY = (lastPoint.current.y + pos.y) / 2;
     
@@ -140,18 +124,18 @@ const Settings: React.FC<SettingsProps> = ({
     ctx.stroke();
     
     lastPoint.current = pos;
-    setHasNewSignature(true);
+    if (!hasNewSignature) setHasNewSignature(true);
   };
 
   const stopDrawing = () => {
-    setIsDrawing(false);
+    isDrawing.current = false;
     lastPoint.current = null;
   };
 
   const saveSignature = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    onProfileImageChange(canvas.toDataURL('image/png'));
+    onProfileImageChange(canvas.toDataURL('image/png', 0.8));
     setIsUpdatingSignature(false);
     setHasNewSignature(false);
   };
@@ -224,7 +208,9 @@ const Settings: React.FC<SettingsProps> = ({
       save: "Sign Pledge",
       clear: "Clear",
       cancel: "Cancel",
-      noSignature: "No signature on file."
+      noSignature: "No signature on file.",
+      historyData: "History & Data",
+      sessionHistory: "Session History"
     },
     ar: {
       config: "الإعدادات",
@@ -248,14 +234,16 @@ const Settings: React.FC<SettingsProps> = ({
       save: "حفظ التعهد",
       clear: "مسح",
       cancel: "إلغاء",
-      noSignature: "لا يوجد توقيع مسجل."
+      noSignature: "لا يوجد توقيع مسجل.",
+      historyData: "السجل والبيانات",
+      sessionHistory: "سجل الجلسات"
     }
   };
 
   const t = translations[language];
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-y-auto no-scrollbar transition-all duration-700 ease-in-out" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-y-auto scroll-container no-scrollbar transition-all duration-700 ease-in-out" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="px-8 pt-10 pb-24 w-full max-w-lg mx-auto">
         <header className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
           <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{t.config}</h2>
@@ -263,7 +251,6 @@ const Settings: React.FC<SettingsProps> = ({
         </header>
 
         <div className="space-y-10">
-          {/* 1. Profile Section */}
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 stagger-2">
             <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.profile}</h3>
             <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-8 transition-all duration-500 hover:shadow-md">
@@ -295,12 +282,11 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
               </div>
 
-              {/* Signature Section */}
               <div className="pt-4 border-t border-slate-50 dark:border-slate-800">
                 <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] mb-4">{t.pledge}</p>
                 {isUpdatingSignature ? (
                   <div className="space-y-5 animate-in fade-in zoom-in-95 duration-500 ease-out">
-                    <div className="w-full h-44 bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden relative group">
+                    <div className="w-full h-44 bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden relative group touch-none">
                       <canvas 
                         ref={canvasRef}
                         onMouseDown={startDrawing}
@@ -316,7 +302,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <div className="flex gap-3">
                       <button 
                         onClick={() => setIsUpdatingSignature(false)}
-                        className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                        className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform"
                       >
                         {t.cancel}
                       </button>
@@ -350,7 +336,6 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </section>
 
-          {/* 2. Appearance Section */}
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 stagger-3">
             <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.interface}</h3>
             <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-8">
@@ -417,7 +402,6 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </section>
 
-          {/* 3. Time & Discipline */}
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 stagger-4">
             <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.timeDisciplineHeader}</h3>
             <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-6">
@@ -447,7 +431,6 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </section>
 
-          {/* 4. Global Hardening */}
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 stagger-5">
             <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.appDiscipline}</h3>
             <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-8">
@@ -481,7 +464,26 @@ const Settings: React.FC<SettingsProps> = ({
                   )}
                 </div>
               </div>
-              <p className="text-[10px] text-slate-300 dark:text-slate-700 text-center uppercase tracking-[0.4em] font-black pt-2 opacity-60">Core Guardian v4.1</p>
+            </div>
+          </section>
+
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 stagger-[6]">
+            <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.historyData}</h3>
+            <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-4">
+              <button 
+                onClick={() => onNavigate(Screen.SESSION_HISTORY)}
+                className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent-color)] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">{t.sessionHistory}</span>
+                </div>
+                <div className="text-slate-300 dark:text-slate-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </button>
             </div>
           </section>
 
