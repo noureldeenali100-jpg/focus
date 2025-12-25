@@ -49,7 +49,7 @@ const Tasks: React.FC<TasksProps> = ({
         <div className="flex space-x-3 mb-10 group animate-in fade-in stagger-3">
           <input 
             type="text" value={newTaskText} onChange={(e)=>setNewTaskText(e.target.value)} placeholder="Add a new task..."
-            className="flex-1 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-[var(--accent-color)] focus:ring-4 focus:ring-[var(--accent-color)]/5 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            className="flex-1 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-[var(--accent-color)] focus:ring-4 focus:ring-[var(--accent-color)]/5 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
             onKeyDown={(e) => { if(e.key === 'Enter') handleAdd(); }}
           />
           <button 
@@ -64,7 +64,7 @@ const Tasks: React.FC<TasksProps> = ({
           {sortedTasks.map((task, index) => (
             <div 
               key={task.id} 
-              className={`flex items-center justify-between p-5 rounded-3xl border transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) animate-in fade-in slide-in-from-right-4 ${activeTaskId === task.id ? 'bg-[var(--accent-color)]/5 border-[var(--accent-color)]/30 ring-2 ring-[var(--accent-color)]/5 scale-[1.02]' : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              className={`flex items-center justify-between p-5 rounded-3xl border transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) animate-in fade-in slide-in-from-right-4 ${activeTaskId === task.id ? 'bg-[var(--accent-color)]/5 border-[var(--accent-color)]/30 ring-2 ring-[var(--accent-color)]/5 scale-[1.02]' : 'bg-slate-50/50 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               style={{ animationDelay: `${(index + 4) * 60}ms` }}
             >
               <div className="flex items-center space-x-4 flex-1 overflow-hidden">
@@ -88,15 +88,15 @@ const Tasks: React.FC<TasksProps> = ({
               </div>
               <button 
                 onClick={()=>onDeleteTask(task.id)} 
-                className="text-slate-200 dark:text-slate-700 hover:text-red-500 p-2.5 active:scale-50 transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl"
+                className="text-slate-200 dark:text-slate-500 hover:text-red-500 p-2.5 active:scale-50 transition-all duration-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
           ))}
           {tasks.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-24 opacity-20 animate-in fade-in duration-1000 scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4 animate-bounce-subtle"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17z"/><path d="M14 1v7h7"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+            <div className="flex flex-col items-center justify-center py-24 opacity-20 animate-subtle-fade animate-scale-in transform-gpu">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4 animate-bounce-subtle transform-gpu"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17z"/><path d="M14 1v7h7"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Your path is clear</p>
             </div>
           )}

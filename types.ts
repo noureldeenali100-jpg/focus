@@ -87,8 +87,8 @@ export interface State {
   profileImage: string | null;
   signatureImage: string | null; 
   blockLogs: BlockEvent[];
-  sessionLogs: FocusSession[]; // Migrated from simple segments to structured sessions
-  activeSession: ActiveSessionState | null; // Persistence for active session tracking
+  sessionLogs: FocusSession[]; 
+  activeSession: ActiveSessionState | null; 
   unlockRequests: Record<string, UnlockRequest>;
   customApps: AppInfo[];
   minWaitMs: number;
@@ -100,7 +100,6 @@ export interface State {
   theme: Theme;
   accentColor: AccentColor;
   font: AppFont;
-  language: 'en' | 'ar';
   appTimers: Record<string, AppTimer>;
   globalAppConfig: AppConfig; 
   pendingGlobalConfig: PendingConfig | null; 
