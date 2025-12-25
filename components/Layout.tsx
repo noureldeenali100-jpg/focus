@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
 
   return (
     <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      <div className="h-[env(safe-area-inset-top,20px)] bg-transparent w-full shrink-0" />
+      <div className="h-[env(safe-area-inset-top,0px)] bg-transparent w-full shrink-0" />
       
       <main className={`flex-1 scroll-container no-scrollbar relative z-10 ${showNav ? 'pb-[calc(72px+env(safe-area-inset-bottom,12px))]' : ''}`}>
         <div key={currentScreen} className="page-transition h-full w-full">

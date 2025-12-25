@@ -2,9 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#f8fafc" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>FocusGuardian - Stay Productive</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -69,6 +70,11 @@
         color: #0f172a;
         -webkit-text-size-adjust: none;
         text-size-adjust: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
       html.dark, html.dark body {
         background-color: #020617;
@@ -80,8 +86,6 @@
         overscroll-behavior: none;
         user-select: none;
         touch-action: none;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
       }
