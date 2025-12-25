@@ -37,9 +37,15 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
       </header>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-blue-50 dark:bg-blue-900/30 p-6 rounded-[32px] border border-blue-100 dark:border-blue-800">
-          <p className="text-[10px] font-black text-blue-400 dark:text-blue-300 uppercase tracking-widest mb-1">Total Blocks</p>
-          <p className="text-4xl font-black text-blue-600 dark:text-blue-400">{totalBlocks}</p>
+        <div 
+          className="p-6 rounded-[32px] border transition-all duration-300"
+          style={{ 
+            backgroundColor: 'var(--accent-subtle)', 
+            borderColor: 'var(--accent-subtle)' 
+          }}
+        >
+          <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--accent-color)' }}>Total Blocks</p>
+          <p className="text-4xl font-black" style={{ color: 'var(--accent-color)' }}>{totalBlocks}</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/30 p-6 rounded-[32px] border border-emerald-100 dark:border-emerald-800">
           <p className="text-[10px] font-black text-emerald-400 dark:text-emerald-300 uppercase tracking-widest mb-1">Status</p>
@@ -79,7 +85,11 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
               />
               <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={24}>
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.count > 0 ? 'var(--accent-color)' : '#94a3b8'} opacity={entry.count > 0 ? 1 : 0.2} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.count > 0 ? 'var(--accent-color)' : '#94a3b8'} 
+                    opacity={entry.count > 0 ? 1 : 0.2} 
+                  />
                 ))}
               </Bar>
             </BarChart>

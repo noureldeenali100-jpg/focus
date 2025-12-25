@@ -1,11 +1,9 @@
-
 export enum Screen {
   ONBOARDING = 'ONBOARDING',
   HOME = 'HOME',
   TASKS = 'TASKS',
   ALLOWED_APPS = 'ALLOWED_APPS',
   SETTINGS = 'SETTINGS',
-  REPORT = 'REPORT',
   PHONE_SIMULATOR = 'PHONE_SIMULATOR',
   MARKET = 'MARKET'
 }
@@ -16,11 +14,17 @@ export interface AppInfo {
   icon: string;
   isAllowed: boolean;
   color: string;
+  isPermanentBlock?: boolean;
 }
 
 export interface AppConfig {
   allowedMs: number;
   lockMs: number;
+}
+
+export interface PendingConfig {
+  config: AppConfig;
+  requestedAt: number;
 }
 
 export interface AppTimer {
@@ -35,6 +39,32 @@ export interface BlockEvent {
   timestamp: number;
 }
 
+export interface UnlockRequest {
+  appId: string;
+  requestedAt: number;
+  expiresAt: number | null; // Null until the wait period is over
+}
+
+export interface FocusSession {
+  id: string;
+  startTime: number;
+  endTime: number;
+  targetDurationSeconds: number;
+  actualFocusSeconds: number;
+  totalBreakSeconds: number;
+  breakCount: number;
+  status: 'completed' | 'canceled';
+  timestamp: number;
+  isCounted: boolean; // Added to handle short session exclusion
+}
+
+export interface ActiveSessionState {
+  startTime: number;
+  breakCount: number;
+  totalBreakMs: number;
+  lastPauseTimestamp: number | null;
+}
+
 export interface Task {
   id: string;
   text: string;
@@ -45,25 +75,35 @@ export interface Task {
 
 export type Theme = 'light' | 'dark' | 'system';
 export type AccentColor = 'blue' | 'emerald' | 'purple' | 'amber' | 'rose' | 'slate';
+export type FocusSound = 'none' | 'rain' | 'clock' | 'library';
 
 export interface State {
   currentScreen: Screen;
   isFirstTime: boolean;
   isActivated: boolean; 
   userName: string;
+  profileImage: string | null;
+  signatureImage: string | null; 
   blockLogs: BlockEvent[];
+  sessionLogs: FocusSession[]; // Migrated from simple segments to structured sessions
+  activeSession: ActiveSessionState | null; // Persistence for active session tracking
+  unlockRequests: Record<string, UnlockRequest>;
+  customApps: AppInfo[];
+  minWaitMs: number;
+  usageMs: number;
+  lastSessionEventTimestamp: number;
   balance: number;
   tasks: Task[];
-  activeTaskId: string | null;
+  activeTaskId: null | string;
   theme: Theme;
   accentColor: AccentColor;
-  language: string;
-  uninstallRequestedAt: number | null;
+  language: 'en' | 'ar';
   appTimers: Record<string, AppTimer>;
-  appConfigs: Record<string, AppConfig>; 
+  globalAppConfig: AppConfig; 
+  pendingGlobalConfig: PendingConfig | null; 
   cycleAppIds: string[]; 
   isSoundEnabled: boolean;
-  // Timer persistence
+  focusSound: FocusSound;
   timerEndTimestamp: number | null;
   timerPausedRemainingSeconds: number | null;
   timerTotalDurationSeconds: number;

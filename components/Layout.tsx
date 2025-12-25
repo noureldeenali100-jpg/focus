@@ -38,15 +38,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
       )
     },
     { 
-      label: 'Stats', 
-      screen: Screen.REPORT, 
-      icon: (active: boolean) => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20V16"/>
-        </svg>
-      )
-    },
-    { 
       label: 'Settings', 
       screen: Screen.SETTINGS, 
       icon: (active: boolean) => (
@@ -75,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
               <button 
                 key={tab.screen}
                 onClick={() => onNavigate(tab.screen)}
-                className={`flex flex-col items-center justify-center space-y-1 w-1/5 transition-all duration-200 relative active:scale-95 touch-none py-1`}
+                className={`flex flex-col items-center justify-center space-y-1 w-1/4 transition-all duration-200 relative active:scale-95 touch-none py-1`}
               >
                 <div className={`p-2 rounded-xl transition-all duration-200 ${isActive ? 'bg-[var(--accent-color)]/10 text-[var(--accent-color)]' : 'text-slate-400 dark:text-slate-400'}`}>
                   {tab.icon(isActive)}

@@ -1,51 +1,59 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { MOTIVATIONAL_QUOTES } from '../constants';
 
 interface BlockedOverlayProps {
   appName: string;
-  lockedUntil?: number | null;
+  waitRemainingMs?: number | null;
   onClose: () => void;
 }
 
-const BlockedOverlay: React.FC<BlockedOverlayProps> = ({ appName, lockedUntil, onClose }) => {
+const BlockedOverlay: React.FC<BlockedOverlayProps> = ({ appName, waitRemainingMs, onClose }) => {
   const quote = useMemo(() => MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)], []);
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
-    if (!lockedUntil) return;
+    if (waitRemainingMs === null || waitRemainingMs === undefined || waitRemainingMs <= 0) return;
+    
+    let currentWait = waitRemainingMs;
     const interval = setInterval(() => {
-      const diff = lockedUntil - Date.now();
-      if (diff <= 0) {
-        onClose();
+      if (currentWait <= 0) {
+        setTimeLeft("Wait complete. Request active.");
+        clearInterval(interval);
       } else {
-        const mins = Math.floor(diff / 60000);
-        const secs = Math.floor((diff % 60000) / 1000);
-        setTimeLeft(`${mins}:${secs.toString().padStart(2, '0')}`);
+        const mins = Math.floor(currentWait / 60000);
+        const secs = Math.floor((currentWait % 60000) / 1000);
+        setTimeLeft(`${mins}m ${secs.toString().padStart(2, '0')}s`);
+        currentWait -= 1000;
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [lockedUntil, onClose]);
+  }, [waitRemainingMs]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-950 flex flex-col items-center justify-center px-10 text-center animate-in fade-in duration-300">
       <div className="mb-12">
         <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-          {lockedUntil ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          )}
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><rect x="10" y="10" width="4" height="4"/></svg>
         </div>
         <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 mb-2 tracking-tighter">{appName} Restricted</h2>
         
-        {lockedUntil ? (
-          <div className="space-y-2">
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Usage limit reached. Available again in:</p>
-            <p className="text-4xl font-black text-red-600 dark:text-red-500 font-mono tracking-tighter">{timeLeft}</p>
+        {waitRemainingMs !== null && waitRemainingMs !== undefined && waitRemainingMs > 0 ? (
+          <div className="space-y-4">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
+              Discipline cycle in progress. You must wait for the full period before this app becomes temporarily available.
+            </p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Wait Period Progress</p>
+                <p className="text-4xl font-black text-red-600 dark:text-red-500 font-mono tracking-tighter">{timeLeft || "Initializing..."}</p>
+            </div>
           </div>
         ) : (
-          <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">This app is permanently blocked to maximize your potential.</p>
+          <div className="space-y-4">
+            <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                Access is restricted to maintain your focus. Request a timed unlock in the App Shield settings to proceed after the mandatory wait period.
+            </p>
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Note: Social Media is Permanently Blocked</p>
+          </div>
         )}
       </div>
 
@@ -57,10 +65,10 @@ const BlockedOverlay: React.FC<BlockedOverlayProps> = ({ appName, lockedUntil, o
         onClick={onClose}
         className="w-full py-5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-slate-200 dark:shadow-none hover:opacity-90 active:scale-95 transition-all"
       >
-        Dismiss
+        Acknowledge
       </button>
       
-      <p className="mt-8 text-[10px] text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black">Focus Guardian Elite</p>
+      <p className="mt-8 text-[10px] text-slate-300 dark:text-slate-700 uppercase tracking-widest font-black">Guardian Protocol Active</p>
     </div>
   );
 };

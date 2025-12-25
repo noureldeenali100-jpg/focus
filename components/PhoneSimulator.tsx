@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { UNALLOWED_APPS, CYCLE_APPS_BASE } from '../constants';
-import { AppTimer } from '../types';
+import { AppTimer, UnlockRequest, AppInfo } from '../types';
+import AppIcon from './AppIcon';
 
 interface PhoneSimulatorProps {
   isUnlocked: boolean;
   appTimers: Record<string, AppTimer>;
   cycleAppIds: string[];
-  isTimerRunning: boolean; // Added to enforce session-based blocking
+  unlockRequests: Record<string, UnlockRequest>;
+  customApps: AppInfo[];
+  isTimerRunning: boolean; 
   onAppClick: (appId: string, appName: string, isAllowed: boolean) => void;
   onExit: () => void;
 }
@@ -15,6 +18,8 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
   isUnlocked, 
   appTimers, 
   cycleAppIds, 
+  unlockRequests,
+  customApps,
   isTimerRunning,
   onAppClick, 
   onExit 
@@ -28,28 +33,44 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const getStatusLabel = (appId: string, baseAllowed: boolean) => {
+  const getStatusLabel = (appId: string, app: AppInfo) => {
     if (isUnlocked) return null;
     
-    // During an active focus session, non-essential apps show as locked
-    if (isTimerRunning && !baseAllowed) {
-        return <span className="text-[8px] bg-red-600 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm">FOCUS</span>;
+    // Core permanent blocks
+    if (app.isPermanentBlock) {
+        return <span className="text-[7px] bg-red-900 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">CORE</span>;
     }
 
-    if (!baseAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1">X</span>;
+    // Check if app has an active/pending unlock request
+    const request = unlockRequests[appId];
+    if (request) {
+      if (request.expiresAt && Date.now() < request.expiresAt) {
+        return <span className="text-[8px] bg-emerald-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">AVAIL</span>;
+      }
+      if (!request.expiresAt) {
+        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">WAITING</span>;
+      }
+    }
+
+    if (isTimerRunning && !app.isAllowed) {
+        return <span className="text-[8px] bg-red-600 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10">FOCUS</span>;
+    }
+
+    if (!app.isAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10">LOCKED</span>;
     
     if (cycleAppIds.includes(appId)) {
       const timer = appTimers[appId];
       if (timer?.lockedUntil && timer.lockedUntil > Date.now()) {
-        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1">LOCKED</span>;
+        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10">LOCKED</span>;
       }
     }
     return null;
   };
 
+  const allApps = CYCLE_APPS_BASE.concat(UNALLOWED_APPS).concat(customApps);
+
   return (
     <div className="flex flex-col h-full bg-slate-900 text-white relative w-full">
-      {/* Native-feeling Status Bar */}
       <div className="h-8 flex justify-between items-center px-6 pt-2 text-[10px] font-bold shrink-0">
         <span>{time}</span>
         <div className="flex items-center space-x-1">
@@ -59,19 +80,24 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
       </div>
 
       <div className="flex-1 p-8 grid grid-cols-4 content-start gap-x-4 gap-y-10 overflow-y-auto no-scrollbar">
-        {CYCLE_APPS_BASE.concat(UNALLOWED_APPS).map(app => (
-          <button 
-            key={app.id} 
-            onClick={() => onAppClick(app.id, app.name, app.isAllowed)}
-            className="flex flex-col items-center space-y-2 active:scale-90 transition-transform relative"
-          >
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold ${app.color} shadow-lg relative transition-opacity ${isTimerRunning && !app.isAllowed ? 'opacity-40' : 'opacity-100'}`}>
-              {app.icon}
-              {getStatusLabel(app.id, app.isAllowed)}
-            </div>
-            <span className="text-[10px] font-medium opacity-90 truncate w-full text-center">{app.name}</span>
-          </button>
-        ))}
+        {allApps.map(app => {
+          const request = unlockRequests[app.id];
+          const isActuallyUnlocked = request?.expiresAt && Date.now() < request.expiresAt;
+          
+          return (
+            <button 
+              key={app.id} 
+              onClick={() => onAppClick(app.id, app.name, app.isAllowed)}
+              className="flex flex-col items-center space-y-2 active:scale-90 transition-transform relative"
+            >
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${app.color} shadow-lg relative transition-opacity ${(!app.isAllowed && !isActuallyUnlocked) ? 'opacity-40 grayscale' : 'opacity-100'}`}>
+                <AppIcon appId={app.id} className="w-full h-full p-3.5" />
+                {getStatusLabel(app.id, app)}
+              </div>
+              <span className="text-[10px] font-medium opacity-90 truncate w-full text-center">{app.name}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="h-12 flex justify-center items-center pb-4 shrink-0">

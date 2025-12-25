@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MARKET_UNLOCK_COST } from '../constants';
 
@@ -15,7 +14,13 @@ const Market: React.FC<MarketProps> = ({ balance, onPurchase }) => {
         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Exchange your hard-earned focus</p>
       </header>
 
-      <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-[32px] p-8 text-white mb-8 shadow-xl shadow-amber-100 dark:shadow-none">
+      <div 
+        className="rounded-[32px] p-8 text-white mb-8 shadow-xl dark:shadow-none transition-all duration-300"
+        style={{ 
+          background: 'linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%)',
+          boxShadow: '0 20px 40px -10px var(--accent-subtle)'
+        }}
+      >
         <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Your Balance</p>
         <div className="flex items-center space-x-2">
           <span className="text-5xl font-black">£{balance}</span>
@@ -29,7 +34,10 @@ const Market: React.FC<MarketProps> = ({ balance, onPurchase }) => {
         <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-6 rounded-[32px] shadow-sm flex flex-col space-y-6">
           <div className="flex justify-between items-start">
             <div className="flex space-x-4">
-              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center">
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent-color)' }}
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
