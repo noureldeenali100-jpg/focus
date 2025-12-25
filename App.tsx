@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Screen, State, Theme, AccentColor, FocusSession, UnlockRequest, AppInfo, AppConfig, FocusSound, AppFont } from './types';
 import { 
@@ -94,7 +93,69 @@ const App: React.FC = () => {
   const clockIntervalRef = useRef<number | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
 
-  // Debounced persistence to avoid blocking UI thread with frequent JSON stringify
+  // Sound Feedback Helper
+  const playFeedbackSound = useCallback((type: 'task' | 'complete' | 'cancel' | 'break') => {
+    if (!state.isSoundEnabled) return;
+    try {
+      if (!audioCtxRef.current) {
+        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+        audioCtxRef.current = new AudioContextClass();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const now = ctx.currentTime;
+      const g = ctx.createGain();
+      g.connect(ctx.destination);
+
+      if (type === 'task') {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+        g.gain.setValueAtTime(0.1, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(g);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'complete') {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        osc1.frequency.setValueAtTime(523.25, now);
+        osc2.frequency.setValueAtTime(659.25, now + 0.1);
+        g.gain.setValueAtTime(0.15, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+        osc1.connect(g);
+        osc2.connect(g);
+        osc1.start(now);
+        osc2.start(now + 0.1);
+        osc1.stop(now + 1.0);
+        osc2.stop(now + 1.0);
+      } else if (type === 'cancel') {
+        const osc = ctx.createOscillator();
+        osc.frequency.setValueAtTime(329.63, now); // E4
+        osc.frequency.exponentialRampToValueAtTime(261.63, now + 0.2); // C4
+        g.gain.setValueAtTime(0.1, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(g);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'break') {
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        g.gain.setValueAtTime(0.05, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.connect(g);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+    } catch (e) {
+      console.warn('Feedback sound error', e);
+    }
+  }, [state.isSoundEnabled]);
+
+  // Debounced persistence
   useEffect(() => {
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = window.setTimeout(() => {
@@ -109,37 +170,11 @@ const App: React.FC = () => {
     setState(prev => prev.currentScreen === screen ? prev : { ...prev, currentScreen: screen });
   }, []);
 
-  // Fix: Implemented playFeedbackSound to resolve "Cannot find name 'playFeedbackSound'" error
-  const playFeedbackSound = useCallback((type: 'task') => {
-    if (!state.isSoundEnabled) return;
-    try {
-      if (!audioCtxRef.current) {
-        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-        audioCtxRef.current = new AudioContextClass();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      
-      if (type === 'task') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-        g.gain.setValueAtTime(0.1, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-        osc.connect(g);
-        g.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-      }
-    } catch (e) {
-      console.warn('Feedback sound error', e);
-    }
-  }, [state.isSoundEnabled]);
-
   const finalizeSession = useCallback((status: 'completed' | 'canceled') => {
+    // Play ending sound
+    if (status === 'completed') playFeedbackSound('complete');
+    else playFeedbackSound('cancel');
+
     setState(prev => {
       if (!prev.activeSession) return prev;
       
@@ -180,12 +215,18 @@ const App: React.FC = () => {
         lastSessionEventTimestamp: now
       };
     });
-  }, []);
+  }, [playFeedbackSound]);
 
   const toggleTimerAction = useCallback(() => {
     const now = Date.now();
     setState(prev => {
-      if (prev.timerPausedRemainingSeconds !== null || (!prev.timerEndTimestamp && prev.timerPausedRemainingSeconds === null)) {
+      const isCurrentlyStarting = prev.timerPausedRemainingSeconds !== null || (!prev.timerEndTimestamp && prev.timerPausedRemainingSeconds === null);
+      
+      // Feedback sound for pause/resume
+      if (isCurrentlyStarting) playFeedbackSound('break'); // Resume
+      else playFeedbackSound('break'); // Pause
+
+      if (isCurrentlyStarting) {
         let activeSession = prev.activeSession || { startTime: now, breakCount: 0, totalBreakMs: 0, lastPauseTimestamp: null };
         if (activeSession.lastPauseTimestamp) {
           activeSession = { ...activeSession, totalBreakMs: activeSession.totalBreakMs + (now - activeSession.lastPauseTimestamp), lastPauseTimestamp: null };
@@ -206,9 +247,93 @@ const App: React.FC = () => {
         };
       }
     });
-  }, []);
+  }, [playFeedbackSound]);
 
-  // Keyboard Shortcuts Listener - Optimized with passive true where possible
+  // Ambient Audio Controller
+  useEffect(() => {
+    const stopAudio = () => {
+      if (clockIntervalRef.current) {
+        clearInterval(clockIntervalRef.current);
+        clockIntervalRef.current = null;
+      }
+      audioNodesRef.current.forEach(node => {
+        try { node.stop(); node.disconnect(); } catch (e) {}
+      });
+      audioNodesRef.current = [];
+    };
+
+    if (!isTimerRunning || state.focusSound === 'none') {
+      stopAudio();
+      return;
+    }
+
+    const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContextClass();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    stopAudio();
+
+    const createNoiseBuffer = (noiseType: 'white' | 'brown') => {
+      const bufferSize = 2 * ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      let lastOut = 0;
+
+      for (let i = 0; i < bufferSize; i++) {
+        if (noiseType === 'white') {
+          output[i] = Math.random() * 2 - 1;
+        } else {
+          // Brown noise
+          const white = Math.random() * 2 - 1;
+          lastOut = (lastOut + (0.02 * white)) / 1.02;
+          output[i] = lastOut * 3.5;
+        }
+      }
+      return buffer;
+    };
+
+    if (state.focusSound === 'rain') {
+      const source = ctx.createBufferSource();
+      source.buffer = createNoiseBuffer('white');
+      source.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 800;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.12;
+      source.connect(filter).connect(gain).connect(ctx.destination);
+      source.start();
+      audioNodesRef.current.push(source);
+    } else if (state.focusSound === 'library') {
+      const source = ctx.createBufferSource();
+      source.buffer = createNoiseBuffer('brown');
+      source.loop = true;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.08;
+      source.connect(gain).connect(ctx.destination);
+      source.start();
+      audioNodesRef.current.push(source);
+    } else if (state.focusSound === 'clock') {
+      clockIntervalRef.current = window.setInterval(() => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, ctx.currentTime);
+        g.gain.setValueAtTime(0.02, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+        osc.connect(g).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      }, 1000);
+    }
+
+    return stopAudio;
+  }, [isTimerRunning, state.focusSound]);
+
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
@@ -235,89 +360,7 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.currentScreen, navigate, toggleTimerAction]);
 
-  useEffect(() => {
-    const stopAudio = () => {
-      if (clockIntervalRef.current) {
-        clearInterval(clockIntervalRef.current);
-        clockIntervalRef.current = null;
-      }
-      audioNodesRef.current.forEach(node => {
-        try { node.stop(); node.disconnect(); } catch (e) {}
-      });
-      audioNodesRef.current = [];
-    };
-
-    if (!isTimerRunning || state.focusSound === 'none') {
-      stopAudio();
-      return;
-    }
-
-    if (!audioCtxRef.current) {
-      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-      audioCtxRef.current = new AudioContextClass();
-    }
-    const ctx = audioCtxRef.current;
-    if (ctx.state === 'suspended') ctx.resume();
-
-    stopAudio();
-
-    if (state.focusSound === 'rain') {
-      const bufferSize = 2 * ctx.sampleRate;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
-      const whiteNoise = ctx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer;
-      whiteNoise.loop = true;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 800;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.15;
-      whiteNoise.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      whiteNoise.start();
-      audioNodesRef.current.push(whiteNoise);
-    } else if (state.focusSound === 'clock') {
-      clockIntervalRef.current = window.setInterval(() => {
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        g.gain.setValueAtTime(0.05, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
-        osc.connect(g);
-        g.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.05);
-      }, 1000);
-    } else if (state.focusSound === 'library') {
-      const bufferSize = 2 * ctx.sampleRate;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      let lastOut = 0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        const out = (lastOut + (0.02 * white)) / 1.02;
-        output[i] = out * 3.5; 
-        lastOut = out;
-      }
-      const brownNoise = ctx.createBufferSource();
-      brownNoise.buffer = noiseBuffer;
-      brownNoise.loop = true;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.08;
-      brownNoise.connect(gain);
-      gain.connect(ctx.destination);
-      brownNoise.start();
-      audioNodesRef.current.push(brownNoise);
-    }
-
-    return stopAudio;
-  }, [isTimerRunning, state.focusSound]);
-
-  // Efficient background logic updates
+  // General state update loops
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -326,7 +369,6 @@ const App: React.FC = () => {
         let updatedRequests = { ...prev.unlockRequests };
         let pendingGlobalConfig = prev.pendingGlobalConfig;
 
-        // 1. Process pending global config updates
         if (pendingGlobalConfig && now - pendingGlobalConfig.requestedAt >= 60 * 60 * 1000) {
           return {
             ...prev,
@@ -335,7 +377,6 @@ const App: React.FC = () => {
           };
         }
 
-        // 2. Process unlock requests
         Object.keys(updatedRequests).forEach((appId) => {
           const request = updatedRequests[appId];
           if (!request.expiresAt && (now - request.requestedAt >= prev.minWaitMs)) {
