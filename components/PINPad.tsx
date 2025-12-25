@@ -38,7 +38,7 @@ const PINPad: React.FC<PINPadProps> = ({ title, onSuccess, onCancel, correctPin 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xs">
         <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-8 tracking-tight">{title}</h3>
         
-        <div className={`flex space-x-5 mb-14 ${error ? 'animate-bounce text-red-500' : ''}`}>
+        <div className={`flex space-x-5 mb-14 ${error ? 'animate-shake-gentle text-red-500' : ''}`}>
           {[...Array(4)].map((_, i) => (
             <div key={i} className={`w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-800 transition-all duration-200 ${pin.length > i ? 'bg-slate-800 dark:bg-slate-200 border-slate-800 dark:border-slate-200 scale-110' : 'scale-100'}`}></div>
           ))}
