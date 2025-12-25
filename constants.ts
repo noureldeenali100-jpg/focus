@@ -45,11 +45,3 @@ export const MOTIVATIONAL_QUOTES = [
 ];
 
 export const MARKET_UNLOCK_COST = 1000;
-
-// Cycle Logic Constants
-export const CYCLE_USAGE_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
-export const CYCLE_LOCK_DURATION_MS = 60 * 60 * 1000; // 1 hour
-
-export const DEFAULT_APP_COLORS = [
-  'bg-slate-800', 'bg-purple-600', 'bg-rose-500', 'bg-amber-500', 'bg-indigo-600'
-];

@@ -1,14 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Theme, AccentColor, FocusSession, AppConfig, PendingConfig, FocusSound, AppFont, Screen } from '../types';
+import { Theme, AccentColor, FocusSession, FocusSound, AppFont, Screen } from '../types';
 
 interface SettingsProps {
-  theme: Theme; accentColor: AccentColor; font: AppFont; isSoundEnabled: boolean; focusSound: FocusSound;
+  theme: Theme; accentColor: AccentColor; font: AppFont; isSoundEnabled: boolean; isAnimationsEnabled: boolean; focusSound: FocusSound;
   userName: string; profileImage: string | null; signatureImage: string | null;
-  minWaitMs: number; usageMs: number; sessionLogs: FocusSession[]; globalAppConfig: AppConfig; pendingGlobalConfig: PendingConfig | null;
+  sessionLogs: FocusSession[];
   onThemeChange: (t: Theme) => void; onAccentChange: (c: AccentColor) => void; onFontChange: (f: AppFont) => void;
-  onToggleSound: () => void; onSetFocusSound: (s: FocusSound) => void; onNameChange: (name: string) => void;
+  onToggleSound: () => void; onToggleAnimations: () => void; onSetFocusSound: (s: FocusSound) => void; onNameChange: (name: string) => void;
   onProfileImageChange: (base64: string) => void;
-  onWaitChange: (ms: number) => void; onUsageChange: (ms: number) => void; onRequestConfigUpdate: (allowedMins: number, lockMins: number) => void;
   onNavigate: (s: Screen) => void;
 }
 
@@ -21,10 +20,10 @@ const getAccentHex = (color: AccentColor): string => {
 };
 
 const Settings: React.FC<SettingsProps> = ({ 
-  theme, accentColor, font, isSoundEnabled, focusSound, userName, profileImage, signatureImage,
-  minWaitMs, usageMs, sessionLogs, globalAppConfig, pendingGlobalConfig,
-  onThemeChange, onAccentChange, onFontChange, onToggleSound, onSetFocusSound, onNameChange, onProfileImageChange,
-  onWaitChange, onUsageChange, onRequestConfigUpdate, onNavigate
+  theme, accentColor, font, isSoundEnabled, isAnimationsEnabled, focusSound, userName, profileImage, signatureImage,
+  sessionLogs,
+  onThemeChange, onAccentChange, onFontChange, onToggleSound, onToggleAnimations, onSetFocusSound, onNameChange, onProfileImageChange,
+  onNavigate
 }) => {
   const accentColors: AccentColor[] = ['blue', 'emerald', 'purple', 'amber', 'rose', 'slate'];
   const fonts = ['Inter', 'System', 'Serif', 'Mono'];
@@ -65,7 +64,7 @@ const Settings: React.FC<SettingsProps> = ({
   };
 
   const t = { 
-    config: "Settings", tailor: "Personalize your workspace.", interface: "Interface Style", colorMode: "Lighting Mode", brandAccent: "Focus Color", fontStyle: "Font Setting", profile: "Personal Profile", displayName: "Your Name", unlockWait: "Unlock Delay (mins)", usageWindow: "Usage Limit (mins)", appDiscipline: "Focus Hardening", globalUsage: "Max App Time (mins)", globalLock: "Lock Extension (mins)", pendingChange: (val: number, time: number) => `Pending: ${val}m (Ready in ${time}m)`, timeDisciplineHeader: "Guard Timings", pledge: "Personal Pledge", resign: "Change Signature", save: "Sign Pledge", clear: "Clear", cancel: "Cancel", noSignature: "No signature on file.", historyData: "History & Data", sessionHistory: "Session History" 
+    config: "Settings", tailor: "Personalize your workspace.", interface: "Interface Style", colorMode: "Lighting Mode", brandAccent: "Focus Color", fontStyle: "Font Setting", disableAnimations: "Disable Animations", profile: "Personal Profile", displayName: "Your Name", pledge: "Personal Pledge", resign: "Change Signature", save: "Sign Pledge", clear: "Clear", cancel: "Cancel", noSignature: "No signature on file." 
   };
 
   return (
@@ -148,31 +147,17 @@ const Settings: React.FC<SettingsProps> = ({
                   ))}
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.timeDisciplineHeader}</h3>
-            <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-6">
-              <div><p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2.5 px-1">{t.unlockWait}</p><input type="number" min="30" value={minWaitMs === 0 ? '' : Math.round(minWaitMs / 60000)} onChange={(e) => onWaitChange((parseInt(e.target.value) || 0) * 60000)} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3 text-sm font-extrabold outline-none focus:border-[var(--accent-color)] dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600" /></div>
-              <div><p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2.5 px-1">{t.usageWindow}</p><input type="number" min="15" max="120" value={usageMs === 0 ? '' : Math.round(usageMs / 60000)} onChange={(e) => onUsageChange((parseInt(e.target.value) || 0) * 60000)} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3 text-sm font-extrabold outline-none focus:border-[var(--accent-color)] dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600" /></div>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.appDiscipline}</h3>
-            <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm space-y-8">
-              <div className="space-y-6">
-                <div><p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2.5 px-1">{t.globalUsage}</p><input type="number" value={Math.round(globalAppConfig.allowedMs / 60000)} onChange={(e) => onRequestConfigUpdate(parseInt(e.target.value) || 0, Math.round(globalAppConfig.lockMs / 60000))} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3 text-sm font-extrabold focus:border-[var(--accent-color)] dark:text-slate-100" />{pendingGlobalConfig && <p className="text-[10px] text-amber-500 mt-2 uppercase font-black">{t.pendingChange(Math.round(pendingGlobalConfig.config.allowedMs / 60000), Math.ceil((60 * 60 * 1000 - (Date.now() - pendingGlobalConfig.requestedAt)) / 60000))}</p>}</div>
-                <div><p className="text-xs font-black text-slate-700 dark:text-slate-300 mb-2.5 px-1">{t.globalLock}</p><input type="number" value={Math.round(globalAppConfig.lockMs / 60000)} onChange={(e) => onRequestConfigUpdate(Math.round(globalAppConfig.allowedMs / 60000), parseInt(e.target.value) || 0)} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3 text-sm font-extrabold focus:border-[var(--accent-color)] dark:text-slate-100" />{pendingGlobalConfig && <p className="text-[10px] text-amber-500 mt-2 uppercase font-black">{t.pendingChange(Math.round(pendingGlobalConfig.config.lockMs / 60000), Math.ceil((60 * 60 * 1000 - (Date.now() - pendingGlobalConfig.requestedAt)) / 60000))}</p>}</div>
+              <div className="pt-2">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-xs font-black text-slate-700 dark:text-slate-300">{t.disableAnimations}</p>
+                  <button 
+                    onClick={onToggleAnimations}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${!isAnimationsEnabled ? 'bg-[var(--accent-color)]' : 'bg-slate-200 dark:bg-slate-800'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${!isAnimationsEnabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
               </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mb-4 px-2">{t.historyData}</h3>
-            <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[36px] p-6 shadow-sm">
-              <button onClick={() => onNavigate(Screen.SESSION_HISTORY)} className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex items-center justify-between shadow-sm active:scale-[0.98] transition-all hover:bg-slate-100 dark:hover:bg-slate-800/80"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent-color)] flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg></div><span className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-100">{t.sessionHistory}</span></div><div className="text-slate-300 dark:text-slate-600"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div></button>
             </div>
           </section>
         </div>

@@ -1,16 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Screen, State, Theme, AccentColor, FocusSession, UnlockRequest, AppInfo, AppConfig, FocusSound, AppFont } from './types';
-import { 
-  CYCLE_USAGE_LIMIT_MS, 
-  CYCLE_LOCK_DURATION_MS, 
-  CYCLE_APPS_BASE,
-  UNALLOWED_APPS,
-} from './constants';
+import { Screen, State, FocusSession, Screen as ScreenType } from './types';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
 import Focus from './components/Focus';
 import Tasks from './components/Tasks';
-import AllowedApps from './components/AllowedApps';
 import Settings from './components/Settings';
 import BlockedOverlay from './components/BlockedOverlay';
 import Market from './components/Market';
@@ -21,15 +14,9 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('focus_guardian_v14_state');
     if (saved) {
       const parsed = JSON.parse(saved);
-      const globalConfig = parsed.globalAppConfig || (parsed.appConfigs?.wa ? parsed.appConfigs.wa : { allowedMs: CYCLE_USAGE_LIMIT_MS, lockMs: CYCLE_LOCK_DURATION_MS });
-      
       return {
         ...parsed,
         isActivated: true,
-        unlockRequests: parsed.unlockRequests || {},
-        customApps: parsed.customApps || [],
-        minWaitMs: parsed.minWaitMs || 60 * 60 * 1000,
-        usageMs: parsed.usageMs || 60 * 60 * 1000,
         theme: parsed.theme || 'system',
         accentColor: parsed.accentColor || 'blue',
         font: parsed.font || 'Inter',
@@ -39,12 +26,11 @@ const App: React.FC = () => {
         activeSession: parsed.activeSession || null,
         lastSessionEventTimestamp: parsed.lastSessionEventTimestamp || Date.now(),
         isSoundEnabled: parsed.isSoundEnabled ?? true,
+        isAnimationsEnabled: parsed.isAnimationsEnabled ?? true,
         focusSound: parsed.focusSound || 'none',
         timerEndTimestamp: parsed.timerEndTimestamp || null,
         timerPausedRemainingSeconds: parsed.timerPausedRemainingSeconds || null,
         timerTotalDurationSeconds: parsed.timerTotalDurationSeconds ?? 25 * 60,
-        globalAppConfig: globalConfig,
-        pendingGlobalConfig: parsed.pendingGlobalConfig || null,
       };
     }
     return {
@@ -57,10 +43,6 @@ const App: React.FC = () => {
       blockLogs: [],
       sessionLogs: [],
       activeSession: null,
-      unlockRequests: {},
-      customApps: [],
-      minWaitMs: 60 * 60 * 1000,
-      usageMs: 60 * 60 * 1000,
       lastSessionEventTimestamp: Date.now(),
       balance: 100,
       tasks: [],
@@ -68,11 +50,8 @@ const App: React.FC = () => {
       theme: 'system',
       accentColor: 'blue',
       font: 'Inter',
-      appTimers: {},
-      globalAppConfig: { allowedMs: CYCLE_USAGE_LIMIT_MS, lockMs: CYCLE_LOCK_DURATION_MS },
-      pendingGlobalConfig: null,
-      cycleAppIds: CYCLE_APPS_BASE.map(a => a.id),
       isSoundEnabled: true,
+      isAnimationsEnabled: true,
       focusSound: 'none',
       timerEndTimestamp: null,
       timerPausedRemainingSeconds: null,
@@ -81,8 +60,13 @@ const App: React.FC = () => {
   });
 
   const [timerDisplaySeconds, setTimerDisplaySeconds] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [activeOverlay, setActiveOverlay] = useState<{ name: string; waitRemainingMs: number | null } | null>(null);
+  const [isAppFullscreen, setIsAppFullscreen] = useState(false);
+
+  // Derive running state directly from source of truth to avoid jitter
+  const isTimerActive = useMemo(() => {
+    return state.timerEndTimestamp !== null && state.timerPausedRemainingSeconds === null;
+  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioNodesRef = useRef<any[]>([]);
@@ -134,18 +118,20 @@ const App: React.FC = () => {
     return () => { if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current); };
   }, [state]);
 
-  const navigate = useCallback((screen: Screen) => {
+  const navigate = useCallback((screen: ScreenType) => {
     setState(prev => (prev.currentScreen === screen ? prev : { ...prev, currentScreen: screen }));
   }, []);
 
-  const finalizeSession = useCallback((status: 'completed' | 'canceled') => {
+  const finalizeSessionAndReset = useCallback((status: 'completed' | 'canceled') => {
     if (status === 'completed') playFeedbackSound('complete');
     else playFeedbackSound('cancel');
+
     setState(prev => {
       if (!prev.activeSession) return prev;
       const now = Date.now();
       let totalBreakMs = prev.activeSession.totalBreakMs;
       if (prev.activeSession.lastPauseTimestamp) { totalBreakMs += (now - prev.activeSession.lastPauseTimestamp); }
+      
       let focusDuration = 0;
       if (prev.timerTotalDurationSeconds === 0) {
         focusDuration = Math.floor((now - prev.activeSession.startTime - totalBreakMs) / 1000);
@@ -153,14 +139,32 @@ const App: React.FC = () => {
         const currentRemaining = prev.timerPausedRemainingSeconds !== null ? prev.timerPausedRemainingSeconds : Math.ceil(((prev.timerEndTimestamp || 0) - now) / 1000);
         focusDuration = status === 'completed' ? prev.timerTotalDurationSeconds : Math.max(0, prev.timerTotalDurationSeconds - currentRemaining);
       }
+      
       const shouldBeCounted = focusDuration >= 600;
       const finalStatus = shouldBeCounted ? status : 'canceled';
+      
       const newSession: FocusSession = {
-        id: `session_${now}`, startTime: prev.activeSession.startTime, endTime: now, targetDurationSeconds: prev.timerTotalDurationSeconds,
-        actualFocusSeconds: focusDuration, totalBreakSeconds: Math.floor(totalBreakMs / 1000), breakCount: prev.activeSession.breakCount,
-        status: finalStatus, timestamp: now, isCounted: shouldBeCounted
+        id: `session_${now}`, 
+        startTime: prev.activeSession.startTime, 
+        endTime: now, 
+        targetDurationSeconds: prev.timerTotalDurationSeconds,
+        actualFocusSeconds: focusDuration, 
+        totalBreakSeconds: Math.floor(totalBreakMs / 1000), 
+        breakCount: prev.activeSession.breakCount,
+        status: finalStatus, 
+        timestamp: now, 
+        isCounted: shouldBeCounted
       };
-      return { ...prev, sessionLogs: [...prev.sessionLogs, newSession], activeSession: null, lastSessionEventTimestamp: now };
+
+      return { 
+        ...prev, 
+        sessionLogs: [...prev.sessionLogs, newSession], 
+        activeSession: null, 
+        lastSessionEventTimestamp: now,
+        timerEndTimestamp: null,
+        timerPausedRemainingSeconds: null,
+        balance: status === 'completed' ? prev.balance + 100 : prev.balance
+      };
     });
   }, [playFeedbackSound]);
 
@@ -181,22 +185,37 @@ const App: React.FC = () => {
     });
   }, [playFeedbackSound]);
 
+  // Enhanced Audio Synthesis Effect
   useEffect(() => {
     const stopAudio = () => {
       if (clockIntervalRef.current) clearInterval(clockIntervalRef.current);
       if (rainIntervalRef.current) clearInterval(rainIntervalRef.current);
       clockIntervalRef.current = null; rainIntervalRef.current = null;
-      audioNodesRef.current.forEach(node => { try { node.stop(); node.disconnect(); } catch (e) {} });
+      
+      const now = audioCtxRef.current?.currentTime || 0;
+      audioNodesRef.current.forEach(node => {
+        try {
+          if (node.gain) {
+            node.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+            setTimeout(() => { node.stop(); node.disconnect(); }, 600);
+          } else {
+            node.stop(); node.disconnect();
+          }
+        } catch (e) {}
+      });
       audioNodesRef.current = [];
     };
-    if (!isTimerRunning || state.focusSound === 'none') { stopAudio(); return; }
+    
+    if (!isTimerActive || state.focusSound === 'none') { stopAudio(); return; }
+    
     const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
     if (!audioCtxRef.current) audioCtxRef.current = new AudioContextClass();
     const ctx = audioCtxRef.current;
     if (ctx.state === 'suspended') ctx.resume();
     stopAudio();
+
     const createNoiseBuffer = (noiseType: 'white' | 'brown' | 'pink') => {
-      const bufferSize = 2 * ctx.sampleRate;
+      const bufferSize = 4 * ctx.sampleRate;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = buffer.getChannelData(0);
       let lastOut = 0;
@@ -217,36 +236,70 @@ const App: React.FC = () => {
       }
       return buffer;
     };
+
+    const now = ctx.currentTime;
+    const masterFade = ctx.createGain();
+    masterFade.gain.setValueAtTime(0, now);
+    masterFade.gain.linearRampToValueAtTime(1, now + 1.5);
+    masterFade.connect(ctx.destination);
+
     if (state.focusSound === 'rain') {
       const rumble = ctx.createBufferSource(); rumble.buffer = createNoiseBuffer('brown'); rumble.loop = true;
-      const rumbleFilter = ctx.createBiquadFilter(); rumbleFilter.type = 'lowpass'; rumbleFilter.frequency.value = 120;
-      const rumbleGain = ctx.createGain(); rumbleGain.gain.value = 0.04;
-      rumble.connect(rumbleFilter).connect(rumbleGain).connect(ctx.destination); rumble.start(); audioNodesRef.current.push(rumble);
-      const hiss = ctx.createBufferSource(); hiss.buffer = createNoiseBuffer('pink'); hiss.loop = true;
-      const hissFilter = ctx.createBiquadFilter(); hissFilter.type = 'lowpass'; hissFilter.frequency.value = 1400;
-      const hissGain = ctx.createGain(); hissGain.gain.value = 0.1;
-      hiss.connect(hissFilter).connect(hissGain).connect(ctx.destination); hiss.start(); audioNodesRef.current.push(hiss);
+      const rumbleFilter = ctx.createBiquadFilter(); rumbleFilter.type = 'lowpass'; rumbleFilter.frequency.value = 80;
+      const rumbleGain = ctx.createGain(); rumbleGain.gain.value = 0.06;
+      rumble.connect(rumbleFilter).connect(rumbleGain).connect(masterFade); 
+      rumble.start(); audioNodesRef.current.push(rumble);
+      const body = ctx.createBufferSource(); body.buffer = createNoiseBuffer('pink'); body.loop = true;
+      const bodyFilter = ctx.createBiquadFilter(); bodyFilter.type = 'lowpass'; bodyFilter.frequency.value = 2500;
+      const bodyGain = ctx.createGain(); bodyGain.gain.value = 0.12;
+      const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.15;
+      const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.03;
+      lfo.connect(lfoGain).connect(bodyGain.gain); lfo.start();
+      body.connect(bodyFilter).connect(bodyGain).connect(masterFade);
+      body.start(); audioNodesRef.current.push(body);
+      const shimmer = ctx.createBufferSource(); shimmer.buffer = createNoiseBuffer('pink'); shimmer.loop = true;
+      const shimmerFilter = ctx.createBiquadFilter(); shimmerFilter.type = 'highpass'; shimmerFilter.frequency.value = 6000;
+      const shimmerGain = ctx.createGain(); shimmerGain.gain.value = 0.02;
+      shimmer.connect(shimmerFilter).connect(shimmerGain).connect(masterFade);
+      shimmer.start(); audioNodesRef.current.push(shimmer);
       rainIntervalRef.current = window.setInterval(() => {
         const drop = ctx.createBufferSource(); drop.buffer = createNoiseBuffer('white');
-        const dropFilter = ctx.createBiquadFilter(); dropFilter.type = 'highpass'; dropFilter.frequency.value = 4000;
+        const dropFilter = ctx.createBiquadFilter(); dropFilter.type = 'lowpass'; 
+        dropFilter.frequency.value = 2000 + Math.random() * 2000;
         const dropGain = ctx.createGain(); dropGain.gain.setValueAtTime(0, ctx.currentTime);
-        dropGain.gain.linearRampToValueAtTime(Math.random() * 0.03, ctx.currentTime + 0.005);
-        dropGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04 + Math.random() * 0.08);
-        drop.connect(dropFilter).connect(dropGain).connect(ctx.destination); drop.start();
-      }, 35);
+        dropGain.gain.linearRampToValueAtTime(Math.random() * 0.04, ctx.currentTime + 0.002);
+        dropGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05 + Math.random() * 0.1);
+        drop.connect(dropFilter).connect(dropGain).connect(masterFade); drop.start();
+      }, 45);
     } else if (state.focusSound === 'library') {
-      const source = ctx.createBufferSource(); source.buffer = createNoiseBuffer('brown'); source.loop = true;
-      const gain = ctx.createGain(); gain.gain.value = 0.06;
-      source.connect(gain).connect(ctx.destination); source.start(); audioNodesRef.current.push(source);
+      const air = ctx.createBufferSource(); air.buffer = createNoiseBuffer('brown'); air.loop = true;
+      const airFilter = ctx.createBiquadFilter(); airFilter.type = 'lowpass'; airFilter.frequency.value = 1500;
+      const airGain = ctx.createGain(); airGain.gain.value = 0.05;
+      air.connect(airFilter).connect(airGain).connect(masterFade); air.start(); audioNodesRef.current.push(air);
+      const resonance = ctx.createBufferSource(); resonance.buffer = createNoiseBuffer('brown'); resonance.loop = true;
+      const resonanceFilter = ctx.createBiquadFilter(); resonanceFilter.type = 'bandpass'; resonanceFilter.frequency.value = 60; resonanceFilter.Q.value = 1;
+      const resGain = ctx.createGain(); resGain.gain.value = 0.03;
+      resonance.connect(resonanceFilter).connect(resGain).connect(masterFade); resonance.start(); audioNodesRef.current.push(resonance);
+      rainIntervalRef.current = window.setInterval(() => {
+        if (Math.random() > 0.85) {
+          const move = ctx.createBufferSource(); move.buffer = createNoiseBuffer('brown');
+          const moveFilter = ctx.createBiquadFilter(); moveFilter.type = 'lowpass'; moveFilter.frequency.value = 200 + Math.random() * 300;
+          const moveGain = ctx.createGain(); moveGain.gain.setValueAtTime(0, ctx.currentTime);
+          moveGain.gain.linearRampToValueAtTime(0.015, ctx.currentTime + 0.1);
+          moveGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8 + Math.random() * 1);
+          move.connect(moveFilter).connect(moveGain).connect(masterFade); move.start();
+        }
+      }, 2000);
     } else if (state.focusSound === 'clock') {
       clockIntervalRef.current = window.setInterval(() => {
-        const osc = ctx.createOscillator(); const g = ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(1200, ctx.currentTime);
-        g.gain.setValueAtTime(0.015, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.03);
-        osc.connect(g).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.03);
+        const osc = ctx.createOscillator(); const g = ctx.createGain(); 
+        osc.type = 'sine'; osc.frequency.setValueAtTime(1000 + (Math.random() * 100), ctx.currentTime);
+        g.gain.setValueAtTime(0.012, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+        osc.connect(g).connect(masterFade); osc.start(); osc.stop(ctx.currentTime + 0.04);
       }, 1000);
     }
     return stopAudio;
-  }, [isTimerRunning, state.focusSound]);
+  }, [isTimerActive, state.focusSound]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -258,8 +311,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const root = window.document.documentElement;
+    if (!state.isAnimationsEnabled) root.classList.add('no-animations');
+    else root.classList.remove('no-animations');
+  }, [state.isAnimationsEnabled]);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
     let fontFamily = "'Plus Jakarta Sans', sans-serif";
-    let displayFont = "'Outfit', sans-serif";
     switch (state.font) {
       case 'System': fontFamily = "system-ui, sans-serif"; break;
       case 'Serif': fontFamily = "'Lora', serif"; break;
@@ -267,38 +325,8 @@ const App: React.FC = () => {
       default: fontFamily = "'Plus Jakarta Sans', sans-serif"; break;
     }
     root.style.setProperty('--font-main', fontFamily);
-    root.style.setProperty('--font-display', displayFont);
+    root.style.setProperty('--font-display', "'Outfit', sans-serif");
   }, [state.font]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setState(prev => {
-        let hasChanges = false; 
-        let updatedRequests = { ...prev.unlockRequests }; 
-        let pendingGlobalConfig = prev.pendingGlobalConfig;
-        
-        if (pendingGlobalConfig && now - pendingGlobalConfig.requestedAt >= 60 * 60 * 1000) { 
-          return { ...prev, globalAppConfig: pendingGlobalConfig.config, pendingGlobalConfig: null }; 
-        }
-        
-        Object.keys(updatedRequests).forEach((appId) => {
-          const request = updatedRequests[appId];
-          if (!request.expiresAt && (now - request.requestedAt >= prev.minWaitMs)) { 
-            updatedRequests[appId] = { ...request, expiresAt: now + prev.usageMs }; 
-            hasChanges = true; 
-          }
-          if (request.expiresAt && now > request.expiresAt) { 
-            delete updatedRequests[appId]; 
-            hasChanges = true; 
-          }
-        });
-        
-        return hasChanges ? { ...prev, unlockRequests: updatedRequests } : prev;
-      });
-    }, 1000); 
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     let animationFrame: number;
@@ -307,31 +335,24 @@ const App: React.FC = () => {
       if (state.timerEndTimestamp && state.timerPausedRemainingSeconds === null) {
         if (state.timerTotalDurationSeconds === 0) { 
           setTimerDisplaySeconds(Math.floor((now - state.timerEndTimestamp) / 1000)); 
-          setIsTimerRunning(true); 
         } else {
           const diff = Math.ceil((state.timerEndTimestamp - now) / 1000);
           if (diff <= 0) { 
-            finalizeSession('completed'); 
-            setState(prev => ({ ...prev, timerEndTimestamp: null, timerPausedRemainingSeconds: null, balance: prev.balance + 100 })); 
-            setTimerDisplaySeconds(0); 
-            setIsTimerRunning(false); 
+            finalizeSessionAndReset('completed'); 
           } else { 
             setTimerDisplaySeconds(diff); 
-            setIsTimerRunning(true); 
           }
         }
       } else if (state.timerPausedRemainingSeconds !== null) { 
         setTimerDisplaySeconds(state.timerPausedRemainingSeconds); 
-        setIsTimerRunning(false); 
       } else { 
         setTimerDisplaySeconds(state.timerTotalDurationSeconds); 
-        setIsTimerRunning(false); 
       }
       animationFrame = requestAnimationFrame(updateTimer);
     };
     animationFrame = requestAnimationFrame(updateTimer); 
     return () => cancelAnimationFrame(animationFrame);
-  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, finalizeSession]);
+  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, finalizeSessionAndReset]);
 
   const currentTheme = useMemo(() => ({
     blue: { main: '#2563eb', light: '#eff6ff', dark: '#1e40af', subtle: 'rgba(37, 99, 235, 0.1)' },
@@ -342,9 +363,7 @@ const App: React.FC = () => {
     slate: { main: '#475569', light: '#f8fafc', dark: '#1e293b', subtle: 'rgba(71, 85, 105, 0.1)' }
   }[state.accentColor]), [state.accentColor]);
 
-  const showNav = !state.isFirstTime && 
-                 state.currentScreen !== Screen.ONBOARDING && 
-                 state.currentScreen !== Screen.PHONE_SIMULATOR;
+  const showNav = !state.isFirstTime && state.currentScreen !== Screen.ONBOARDING;
 
   return (
     <div 
@@ -356,8 +375,8 @@ const App: React.FC = () => {
       } as any} 
       className="flex items-center justify-center min-h-screen w-full font-sans dark:bg-slate-950 bg-slate-100"
     >
-      <div className="w-full h-full md:max-w-sm md:h-[800px] md:rounded-[48px] md:shadow-2xl overflow-hidden bg-white dark:bg-slate-900 relative">
-        <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav}>
+      <div className="w-full h-full md:max-w-md lg:max-w-lg md:max-h-[850px] md:my-8 md:rounded-[48px] md:shadow-2xl overflow-hidden bg-white dark:bg-slate-900 relative flex flex-col transition-all duration-700">
+        <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav && !isAppFullscreen}>
           {state.currentScreen === Screen.ONBOARDING && (
             <Onboarding onComplete={(name, signature) => setState(p => ({
               ...p, userName: name, signatureImage: signature, isFirstTime: false, currentScreen: Screen.HOME
@@ -372,11 +391,12 @@ const App: React.FC = () => {
               activeTaskId={state.activeTaskId} 
               timerSeconds={timerDisplaySeconds} 
               totalSeconds={state.timerTotalDurationSeconds} 
-              isTimerActive={isTimerRunning} 
+              isTimerActive={isTimerActive} 
+              isAnimationsEnabled={state.isAnimationsEnabled}
               focusSound={state.focusSound} 
               onToggleTimer={toggleTimerAction} 
               onToggleMode={() => { 
-                if (isTimerRunning || state.timerPausedRemainingSeconds !== null) finalizeSession('canceled'); 
+                if (isTimerActive || state.timerPausedRemainingSeconds !== null) finalizeSessionAndReset('canceled'); 
                 setState(prev => ({ 
                   ...prev, 
                   timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0, 
@@ -389,6 +409,8 @@ const App: React.FC = () => {
                 ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null, activeSession: null 
               }))} 
               onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))} 
+              isAppFullscreen={isAppFullscreen}
+              setIsAppFullscreen={setIsAppFullscreen}
             />
           )}
           
@@ -396,7 +418,7 @@ const App: React.FC = () => {
             <Tasks 
               tasks={state.tasks} 
               activeTaskId={state.activeTaskId} 
-              isTimerActive={isTimerRunning} 
+              isTimerActive={isTimerActive} 
               onAddTask={(text) => setState(p => ({
                 ...p, 
                 tasks: [...p.tasks, {
@@ -425,52 +447,26 @@ const App: React.FC = () => {
             />
           )}
           
-          {state.currentScreen === Screen.ALLOWED_APPS && (
-            <AllowedApps 
-              appTimers={state.appTimers} 
-              cycleAppIds={state.cycleAppIds} 
-              appConfigs={{ wa: state.globalAppConfig, tg: state.globalAppConfig }} 
-              unlockRequests={state.unlockRequests} 
-              customApps={state.customApps} 
-              minWaitMs={state.minWaitMs} 
-              onRequestUnlock={(appId) => setState(prev => ({ 
-                ...prev, unlockRequests: { ...prev.unlockRequests, [appId]: { appId, requestedAt: Date.now(), expiresAt: null } } 
-              }))} 
-              onAddCustomApp={(app) => setState(p => ({ ...p, customApps: [...p.customApps, app] }))} 
-            />
-          )}
-          
           {state.currentScreen === Screen.SETTINGS && (
             <Settings 
               theme={state.theme} 
               accentColor={state.accentColor} 
               font={state.font} 
               isSoundEnabled={state.isSoundEnabled} 
+              isAnimationsEnabled={state.isAnimationsEnabled}
               focusSound={state.focusSound} 
               userName={state.userName} 
               profileImage={state.profileImage} 
               signatureImage={state.signatureImage} 
-              minWaitMs={state.minWaitMs} 
-              usageMs={state.usageMs} 
               sessionLogs={state.sessionLogs} 
-              globalAppConfig={state.globalAppConfig} 
-              pendingGlobalConfig={state.pendingGlobalConfig} 
               onThemeChange={(t) => setState(p => ({ ...p, theme: t }))} 
               onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))} 
               onFontChange={(f) => setState(p => ({ ...p, font: f }))} 
               onToggleSound={() => setState(p => ({ ...p, isSoundEnabled: !p.isSoundEnabled }))} 
+              onToggleAnimations={() => setState(p => ({ ...p, isAnimationsEnabled: !p.isAnimationsEnabled }))}
               onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))} 
               onNameChange={(name) => setState(p => ({ ...p, userName: name }))} 
               onProfileImageChange={(img) => setState(p => img.startsWith('data:image/png') ? { ...p, signatureImage: img } : { ...p, profileImage: img })} 
-              onWaitChange={(ms) => setState(p => ({ ...p, minWaitMs: ms }))} 
-              onUsageChange={(ms) => setState(p => ({ ...p, usageMs: ms }))} 
-              onRequestConfigUpdate={(a, l) => setState(prev => ({
-                ...prev, 
-                pendingGlobalConfig: { 
-                  config: { allowedMs: a * 60000, lockMs: l * 60000 }, 
-                  requestedAt: Date.now() 
-                } 
-              }))} 
               onNavigate={navigate} 
             />
           )}
@@ -478,14 +474,13 @@ const App: React.FC = () => {
           {state.currentScreen === Screen.MARKET && <Market balance={state.balance} onPurchase={() => {}} />}
           
           {state.currentScreen === Screen.SESSION_HISTORY && (
-            <SessionHistory sessions={state.sessionLogs} onBack={() => navigate(Screen.SETTINGS)} />
+            <SessionHistory sessions={state.sessionLogs} />
           )}
         </Layout>
       </div>
       {activeOverlay && (
         <BlockedOverlay 
           appName={activeOverlay.name} 
-          waitRemainingMs={activeOverlay.waitRemainingMs} 
           onClose={() => setActiveOverlay(null)} 
         />
       )}

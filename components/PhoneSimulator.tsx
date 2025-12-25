@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { UNALLOWED_APPS, CYCLE_APPS_BASE } from '../constants';
-import { AppTimer, UnlockRequest, AppInfo } from '../types';
+import { AppInfo } from '../types';
 import AppIcon from './AppIcon';
 
 interface PhoneSimulatorProps {
   isUnlocked: boolean;
-  appTimers: Record<string, AppTimer>;
-  cycleAppIds: string[];
-  unlockRequests: Record<string, UnlockRequest>;
-  customApps: AppInfo[];
   isTimerRunning: boolean; 
   onAppClick: (appId: string, appName: string, isAllowed: boolean) => void;
   onExit: () => void;
@@ -16,10 +12,6 @@ interface PhoneSimulatorProps {
 
 const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({ 
   isUnlocked, 
-  appTimers, 
-  cycleAppIds, 
-  unlockRequests,
-  customApps,
   isTimerRunning,
   onAppClick, 
   onExit 
@@ -33,21 +25,11 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const getStatusLabel = (appId: string, app: AppInfo) => {
+  const getStatusLabel = (app: AppInfo) => {
     if (isUnlocked) return null;
     
     if (app.isPermanentBlock) {
         return <span className="text-[7px] bg-red-900 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">CORE</span>;
-    }
-
-    const request = unlockRequests[appId];
-    if (request) {
-      if (request.expiresAt && Date.now() < request.expiresAt) {
-        return <span className="text-[8px] bg-emerald-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">AVAIL</span>;
-      }
-      if (!request.expiresAt) {
-        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">WAITING</span>;
-      }
     }
 
     if (isTimerRunning && !app.isAllowed) {
@@ -56,16 +38,10 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
 
     if (!app.isAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10 animate-in zoom-in duration-300">LOCKED</span>;
     
-    if (cycleAppIds.includes(appId)) {
-      const timer = appTimers[appId];
-      if (timer?.lockedUntil && timer.lockedUntil > Date.now()) {
-        return <span className="text-[8px] bg-amber-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10 animate-in zoom-in duration-300">LOCKED</span>;
-      }
-    }
     return null;
   };
 
-  const allApps = CYCLE_APPS_BASE.concat(UNALLOWED_APPS).concat(customApps);
+  const allApps = CYCLE_APPS_BASE.concat(UNALLOWED_APPS);
 
   return (
     <div className="flex flex-col h-full bg-slate-900 text-white relative w-full animate-in fade-in duration-500">
@@ -79,9 +55,6 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
 
       <div className="flex-1 p-8 grid grid-cols-4 content-start gap-x-4 gap-y-10 overflow-y-auto no-scrollbar">
         {allApps.map((app, index) => {
-          const request = unlockRequests[app.id];
-          const isActuallyUnlocked = request?.expiresAt && Date.now() < request.expiresAt;
-          
           return (
             <button 
               key={app.id} 
@@ -91,10 +64,10 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
             >
               <div 
                 className={`w-14 h-14 bg-transparent relative transition-all duration-300 
-                ${(!app.isAllowed && !isActuallyUnlocked) ? 'opacity-40 grayscale' : 'opacity-100 grayscale-0'} hover:scale-105 active:scale-90`}
+                ${(!app.isAllowed) ? 'opacity-40 grayscale' : 'opacity-100 grayscale-0'} hover:scale-105 active:scale-90`}
               >
                 <AppIcon appId={app.id} className="w-full h-full" />
-                {getStatusLabel(app.id, app)}
+                {getStatusLabel(app)}
               </div>
               <span className="text-[10px] font-medium opacity-90 truncate w-full text-center">{app.name}</span>
             </button>

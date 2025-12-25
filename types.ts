@@ -1,10 +1,9 @@
+
 export enum Screen {
   ONBOARDING = 'ONBOARDING',
   HOME = 'HOME',
   TASKS = 'TASKS',
-  ALLOWED_APPS = 'ALLOWED_APPS',
   SETTINGS = 'SETTINGS',
-  PHONE_SIMULATOR = 'PHONE_SIMULATOR',
   MARKET = 'MARKET',
   SESSION_HISTORY = 'SESSION_HISTORY'
 }
@@ -18,32 +17,9 @@ export interface AppInfo {
   isPermanentBlock?: boolean;
 }
 
-export interface AppConfig {
-  allowedMs: number;
-  lockMs: number;
-}
-
-export interface PendingConfig {
-  config: AppConfig;
-  requestedAt: number;
-}
-
-export interface AppTimer {
-  appId: string;
-  usedMs: number; 
-  lockedUntil: number | null; 
-  lastOpenedAt: number | null; 
-}
-
 export interface BlockEvent {
   appName: string;
   timestamp: number;
-}
-
-export interface UnlockRequest {
-  appId: string;
-  requestedAt: number;
-  expiresAt: number | null; // Null until the wait period is over
 }
 
 export interface FocusSession {
@@ -74,6 +50,24 @@ export interface Task {
   completedAt: number | null;
 }
 
+// Fix: Added missing interface for app usage tracking
+export interface AppTimer {
+  usedTodayMs: number;
+  lastUpdateTimestamp: number;
+}
+
+// Fix: Added missing interface for app restriction configuration
+export interface AppConfig {
+  allowedMs: number;
+  lockMs: number;
+}
+
+// Fix: Added missing interface for managing temporary app access requests
+export interface UnlockRequest {
+  requestedAt: number;
+  expiresAt: number | null;
+}
+
 export type Theme = 'light' | 'dark' | 'system';
 export type AccentColor = 'blue' | 'emerald' | 'purple' | 'amber' | 'rose' | 'slate';
 export type FocusSound = 'none' | 'rain' | 'clock' | 'library';
@@ -89,10 +83,6 @@ export interface State {
   blockLogs: BlockEvent[];
   sessionLogs: FocusSession[]; 
   activeSession: ActiveSessionState | null; 
-  unlockRequests: Record<string, UnlockRequest>;
-  customApps: AppInfo[];
-  minWaitMs: number;
-  usageMs: number;
   lastSessionEventTimestamp: number;
   balance: number;
   tasks: Task[];
@@ -100,11 +90,8 @@ export interface State {
   theme: Theme;
   accentColor: AccentColor;
   font: AppFont;
-  appTimers: Record<string, AppTimer>;
-  globalAppConfig: AppConfig; 
-  pendingGlobalConfig: PendingConfig | null; 
-  cycleAppIds: string[]; 
   isSoundEnabled: boolean;
+  isAnimationsEnabled: boolean;
   focusSound: FocusSound;
   timerEndTimestamp: number | null;
   timerPausedRemainingSeconds: number | null;

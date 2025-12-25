@@ -3,10 +3,9 @@ import { FocusSession } from '../types';
 
 interface SessionHistoryProps {
   sessions: FocusSession[];
-  onBack: () => void;
 }
 
-const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions, onBack }) => {
+const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const formatTime = (timestamp: number) => {
@@ -38,20 +37,12 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions, onBack }) => 
     completed: "Completed",
     canceled: "Canceled",
     breaks: "Breaks",
-    target: "Target",
-    back: "Back to Settings"
+    target: "Target"
   };
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
       <header className="px-8 pt-10 pb-6 shrink-0 animate-in fade-in duration-700">
-        <button 
-          onClick={onBack}
-          className="mb-6 flex items-center space-x-2 text-[var(--accent-color)] active:scale-95 transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          <span className="text-[10px] font-black uppercase tracking-widest">{t.back}</span>
-        </button>
         <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{t.title}</h2>
         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{t.subtitle}</p>
       </header>
