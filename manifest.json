@@ -1,24 +1,54 @@
 {
+  "id": "/",
   "name": "FocusGuardian",
   "short_name": "FocusGuardian",
   "description": "A productivity-focused mobile application designed to block distracting social media.",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f8fafc",
   "theme_color": "#2563eb",
+  "background_color": "#f8fafc",
   "icons": [
     {
-      "src": "https://www.gstatic.com/android/keyboard/emojikitchen/20201001/u1f6e1/u1f6e1_u1f4f1.png",
+      "src": "/assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "https://www.gstatic.com/android/keyboard/emojikitchen/20201001/u1f6e1/u1f6e1_u1f4f1.png",
+      "src": "/assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/screenshots/mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile Focus Dashboard"
+    },
+    {
+      "src": "/assets/screenshots/desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Productivity Overview"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
