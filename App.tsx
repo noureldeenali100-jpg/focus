@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Screen, State, FocusSession, Screen as ScreenType } from './types';
+import { Screen, State, FocusSession, Screen as ScreenType, Task } from './types';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
 import Focus from './components/Focus';
@@ -438,6 +438,10 @@ const App: React.FC = () => {
                   }; 
                 }); 
               }} 
+              onUpdateTask={(id, text) => setState(p => ({
+                ...p,
+                tasks: p.tasks.map(t => t.id === id ? { ...t, text } : t)
+              }))}
               onDeleteTask={(id) => setState(p => ({
                 ...p, tasks: p.tasks.filter(t => t.id !== id), activeTaskId: p.activeTaskId === id ? null : p.activeTaskId
               }))} 

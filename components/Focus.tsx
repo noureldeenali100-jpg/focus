@@ -102,13 +102,13 @@ const Focus: React.FC<FocusProps> = ({
       <div className={`${className} flex items-center justify-center tabular-nums`}>
         <div className="flex items-center justify-center">
           {m.split('').map((digit, i) => (
-            <span key={`m-${i}`} className="inline-block transition-colors duration-300 ease-out w-[0.6em] text-center">{digit}</span>
+            <span key={`m-${i}`} className="inline-flex items-center justify-center transition-colors duration-300 ease-out w-[0.6em] text-center">{digit}</span>
           ))}
         </div>
-        <span className="inline-block px-1">:</span>
+        <span className="inline-flex items-center justify-center px-1">:</span>
         <div className="flex items-center justify-center">
           {s.split('').map((digit, i) => (
-            <span key={`s-${i}`} className="inline-block transition-colors duration-300 ease-out w-[0.6em] text-center">{digit}</span>
+            <span key={`s-${i}`} className="inline-flex items-center justify-center transition-colors duration-300 ease-out w-[0.6em] text-center">{digit}</span>
           ))}
         </div>
       </div>
@@ -167,11 +167,11 @@ const Focus: React.FC<FocusProps> = ({
           <p className="text-[clamp(1.1rem,2.5vh,1.5rem)] font-black text-slate-900 dark:text-white tracking-tight leading-none">{userName || 'Guardian'}</p>
         </div>
         
-        <div className="mb-[5vh] flex items-center justify-center w-full">
+        <div className="mb-[5vh] flex items-center justify-center w-full relative">
           {timerCircle()}
         </div>
 
-        <div className="flex flex-row items-center justify-center gap-[4vw] md:gap-8 z-10 w-full mb-[5vh]">
+        <div className="flex flex-row items-center justify-center gap-[4vw] md:gap-8 z-30 relative w-full mb-[5vh]">
           <div className={`relative transition-all duration-300 ease-out transform-gpu ${isTimerActive ? '-translate-x-[200px] opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}>
             <button 
               disabled={isTimerActive} 
@@ -219,7 +219,7 @@ const Focus: React.FC<FocusProps> = ({
         </div>
 
         <div className="z-10 text-center max-w-[320px] h-[6vh] flex items-center justify-center mb-4 transition-all duration-400 ease-out">
-          <p key={quoteIndex} className="text-[clamp(10px,1.4vh,12px)] font-black uppercase tracking-[0.2em] leading-relaxed transition-all duration-400 transform-gpu px-4" style={{ color: isTimerActive ? 'var(--accent-color)' : 'rgb(148, 163, 184)', opacity: isTimerActive ? 1 : 0.6 }}> {isTimerActive ? currentQuote : t.stayPresent} </p>
+          <p key={quoteIndex} className="text-[clamp(10px,1.4vh,12px)] font-black uppercase tracking-[0.2em] leading-relaxed transition-all duration-400 transform-gpu px-4 flex items-center justify-center" style={{ color: isTimerActive ? 'var(--accent-color)' : 'rgb(148, 163, 184)', opacity: isTimerActive ? 1 : 0.6 }}> {isTimerActive ? currentQuote : t.stayPresent} </p>
         </div>
       </section>
 
@@ -232,7 +232,7 @@ const Focus: React.FC<FocusProps> = ({
             seconds={timerSeconds} 
             className="text-[min(120px,25vw)] font-black text-white tracking-tighter leading-none animate-in fade-in duration-400"
           />
-          <p className="absolute bottom-12 left-0 right-0 text-center text-white/25 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in duration-400 delay-100">
+          <p className="absolute bottom-12 left-0 right-0 text-center text-white/25 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in duration-400 delay-100 flex items-center justify-center">
             {t.exitHint}
           </p>
         </div>

@@ -57,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
       </main>
 
       {showNav && (
-        <nav className="absolute bottom-0 left-0 right-0 pt-3 pb-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-[60] transform-gpu">
+        <nav className="bottom-nav-fixed pt-3 pb-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-2 z-[60] transform-gpu">
           {tabs.map((tab) => {
             const isActive = currentScreen === tab.screen;
             return (

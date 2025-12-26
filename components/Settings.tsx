@@ -40,15 +40,20 @@ const Settings: React.FC<SettingsProps> = ({
     const canvas = canvasRef.current; if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
+    // Set internal resolution higher for clarity
     canvas.width = Math.floor(rect.width * dpr); canvas.height = Math.floor(rect.height * dpr);
     const ctx = canvas.getContext('2d', { desynchronized: true, alpha: true }); if (!ctx) return;
     ctx.scale(dpr, dpr); ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
-    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    
+    // Fill white background to ensure visibility if saved as non-transparent (or for contrast)
+    // Actually we keep transparent for dark mode support but ensure clean lines
   }, [isUpdatingSignature]);
 
   const saveSignature = () => {
     const canvas = canvasRef.current; if (!canvas) return;
-    onProfileImageChange(canvas.toDataURL('image/png', 0.8));
+    // Ensure we have a high quality capture
+    onProfileImageChange(canvas.toDataURL('image/png', 1.0));
     setIsUpdatingSignature(false); setHasNewSignature(false);
   };
 
@@ -67,10 +72,19 @@ const Settings: React.FC<SettingsProps> = ({
     config: "Settings", tailor: "Personalize your workspace.", interface: "Interface Style", colorMode: "Lighting Mode", brandAccent: "Focus Color", fontStyle: "Font Setting", disableAnimations: "Disable Animations", profile: "Personal Profile", displayName: "Your Name", pledge: "Personal Pledge", resign: "Change Signature", save: "Sign Pledge", clear: "Clear", cancel: "Cancel", noSignature: "No signature on file." 
   };
 
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setHasNewSignature(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-y-auto scroll-container no-scrollbar">
-      <div className="px-8 pt-10 pb-24 w-full max-w-lg mx-auto">
-        <header className="mb-12 animate-in fade-in duration-700">
+      <div className="px-8 pt-10 pb-24 w-full max-w-lg mx-auto animate-in fade-in">
+        <header className="mb-12">
           <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{t.config}</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{t.tailor}</p>
         </header>
@@ -101,19 +115,71 @@ const Settings: React.FC<SettingsProps> = ({
                 {isUpdatingSignature ? (
                   <div className="space-y-5">
                     <div className="w-full h-44 bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden relative group touch-none">
-                      <canvas ref={canvasRef} onMouseDown={(e) => { isDrawing.current = true; lastPoint.current = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }; }} onMouseMove={(e) => { if (!isDrawing.current || !lastPoint.current) return; const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return; const pos = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }; ctx.beginPath(); ctx.moveTo(lastPoint.current.x, lastPoint.current.y); ctx.lineTo(pos.x, pos.y); ctx.stroke(); lastPoint.current = pos; setHasNewSignature(true); }} onMouseUp={() => isDrawing.current = false} onMouseLeave={() => isDrawing.current = false} className="w-full h-full cursor-crosshair touch-none" />
+                      <canvas 
+                        ref={canvasRef} 
+                        onMouseDown={(e) => { 
+                          isDrawing.current = true; 
+                          const rect = canvasRef.current?.getBoundingClientRect();
+                          if (rect) lastPoint.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }; 
+                        }} 
+                        onMouseMove={(e) => { 
+                          if (!isDrawing.current || !lastPoint.current) return; 
+                          const canvas = canvasRef.current;
+                          const ctx = canvas?.getContext('2d'); 
+                          const rect = canvas?.getBoundingClientRect();
+                          if (!ctx || !rect) return; 
+                          const pos = { x: e.clientX - rect.left, y: e.clientY - rect.top }; 
+                          ctx.beginPath(); 
+                          ctx.moveTo(lastPoint.current.x, lastPoint.current.y); 
+                          ctx.lineTo(pos.x, pos.y); 
+                          ctx.stroke(); 
+                          lastPoint.current = pos; 
+                          setHasNewSignature(true); 
+                        }} 
+                        onMouseUp={() => isDrawing.current = false} 
+                        onMouseLeave={() => isDrawing.current = false}
+                        onTouchStart={(e) => {
+                          isDrawing.current = true;
+                          const rect = canvasRef.current?.getBoundingClientRect();
+                          if (rect) lastPoint.current = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+                        }}
+                        onTouchMove={(e) => {
+                          if (!isDrawing.current || !lastPoint.current) return;
+                          const canvas = canvasRef.current;
+                          const ctx = canvas?.getContext('2d');
+                          const rect = canvas?.getBoundingClientRect();
+                          if (!ctx || !rect) return;
+                          const pos = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+                          ctx.beginPath();
+                          ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+                          ctx.lineTo(pos.x, pos.y);
+                          ctx.stroke();
+                          lastPoint.current = pos;
+                          setHasNewSignature(true);
+                        }}
+                        onTouchEnd={() => isDrawing.current = false}
+                        className="w-full h-full cursor-crosshair touch-none" 
+                      />
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setIsUpdatingSignature(false)} className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl text-[10px] font-black uppercase">{t.cancel}</button>
+                      <button onClick={clearCanvas} className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl text-[10px] font-black uppercase">Clear</button>
                       <button disabled={!hasNewSignature} onClick={saveSignature} className={`flex-1 py-3.5 rounded-2xl text-[10px] font-black uppercase ${hasNewSignature ? 'bg-[var(--accent-color)] text-white shadow-xl' : 'bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600'}`}>{t.save}</button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-4">
-                    <div className="w-full h-28 bg-slate-50 dark:bg-slate-950 rounded-3xl border-2 border-slate-100 dark:border-slate-800 flex items-center justify-center p-6 shadow-inner">
-                      {signatureImage ? <img src={signatureImage} alt="Signature" className="max-w-full max-h-full object-contain dark:invert opacity-90" /> : <span className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.3em]">{t.noSignature}</span>}
+                    <div className="w-full h-32 bg-slate-100 dark:bg-slate-950 rounded-3xl border-2 border-slate-100 dark:border-slate-800 flex items-center justify-center p-8 shadow-inner relative overflow-hidden">
+                      {signatureImage ? (
+                        <img 
+                          src={signatureImage} 
+                          alt="Signature" 
+                          className="w-full h-full object-contain dark:invert opacity-100 transition-opacity" 
+                        />
+                      ) : (
+                        <span className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.3em]">{t.noSignature}</span>
+                      )}
                     </div>
-                    <button onClick={() => setIsUpdatingSignature(true)} className="text-[10px] font-black text-[var(--accent-color)] uppercase tracking-widest bg-[var(--accent-subtle)] py-3 rounded-2xl hover:brightness-105">{t.resign}</button>
+                    <button onClick={() => setIsUpdatingSignature(true)} className="text-[10px] font-black text-[var(--accent-color)] uppercase tracking-widest bg-[var(--accent-subtle)] py-3.5 rounded-2xl hover:brightness-105 active:scale-95 transition-all">{t.resign}</button>
                   </div>
                 )}
               </div>
