@@ -9,31 +9,11 @@ import BlockedOverlay from './components/BlockedOverlay';
 import Market from './components/Market';
 import SessionHistory from './components/SessionHistory';
 
+const STORAGE_KEY = 'focus_guardian_v14_state';
+
 const App: React.FC = () => {
   const [state, setState] = useState<State>(() => {
-    const saved = localStorage.getItem('focus_guardian_v14_state');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        ...parsed,
-        isActivated: true,
-        theme: parsed.theme || 'system',
-        accentColor: parsed.accentColor || 'blue',
-        font: parsed.font || 'Inter',
-        profileImage: parsed.profileImage || null,
-        signatureImage: parsed.signatureImage || null,
-        sessionLogs: parsed.sessionLogs || [],
-        activeSession: parsed.activeSession || null,
-        lastSessionEventTimestamp: parsed.lastSessionEventTimestamp || Date.now(),
-        isSoundEnabled: parsed.isSoundEnabled ?? true,
-        isAnimationsEnabled: parsed.isAnimationsEnabled ?? true,
-        focusSound: parsed.focusSound || 'none',
-        timerEndTimestamp: parsed.timerEndTimestamp || null,
-        timerPausedRemainingSeconds: parsed.timerPausedRemainingSeconds || null,
-        timerTotalDurationSeconds: parsed.timerTotalDurationSeconds ?? 25 * 60,
-      };
-    }
-    return {
+    const initialState: State = {
       currentScreen: Screen.ONBOARDING,
       isFirstTime: true,
       isActivated: true,
@@ -57,6 +37,30 @@ const App: React.FC = () => {
       timerPausedRemainingSeconds: null,
       timerTotalDurationSeconds: 25 * 60,
     };
+
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Deep merge with defaults to ensure any new state properties are present
+        return {
+          ...initialState,
+          ...parsed,
+          isActivated: true, // Force activation state
+          theme: parsed.theme || 'system',
+          accentColor: parsed.accentColor || 'blue',
+          font: parsed.font || 'Inter',
+          sessionLogs: Array.isArray(parsed.sessionLogs) ? parsed.sessionLogs : [],
+          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+          lastSessionEventTimestamp: parsed.lastSessionEventTimestamp || Date.now(),
+          isSoundEnabled: parsed.isSoundEnabled ?? true,
+          isAnimationsEnabled: parsed.isAnimationsEnabled ?? true,
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load state from localStorage:', e);
+    }
+    return initialState;
   });
 
   const [timerDisplaySeconds, setTimerDisplaySeconds] = useState(0);
@@ -78,13 +82,18 @@ const App: React.FC = () => {
     try {
       if (!audioCtxRef.current) {
         const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-        audioCtxRef.current = new AudioContextClass();
+        if (AudioContextClass) {
+          audioCtxRef.current = new AudioContextClass();
+        }
       }
       const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      
       if (ctx.state === 'suspended') ctx.resume();
       const now = ctx.currentTime;
       const g = ctx.createGain();
       g.connect(ctx.destination);
+      
       if (type === 'task') {
         const osc = ctx.createOscillator();
         osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now);
@@ -106,13 +115,19 @@ const App: React.FC = () => {
         g.gain.setValueAtTime(0.05, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
         osc.connect(g); osc.start(now); osc.stop(now + 0.5);
       }
-    } catch (e) { console.warn('Feedback sound error', e); }
+    } catch (e) { 
+      console.warn('Feedback sound error', e); 
+    }
   }, [state.isSoundEnabled]);
 
   useEffect(() => {
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = window.setTimeout(() => {
-      localStorage.setItem('focus_guardian_v14_state', JSON.stringify(state));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('Failed to save state to localStorage:', e);
+      }
     }, 1000);
     return () => { if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current); };
   }, [state]);
@@ -195,7 +210,9 @@ const App: React.FC = () => {
         try {
           if (node.gain) {
             node.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-            setTimeout(() => { node.stop(); node.disconnect(); }, 600);
+            setTimeout(() => { 
+              try { node.stop(); node.disconnect(); } catch(e) {}
+            }, 600);
           } else {
             node.stop(); node.disconnect();
           }
@@ -207,8 +224,12 @@ const App: React.FC = () => {
     if (!isTimerActive || state.focusSound === 'none') { stopAudio(); return; }
     
     const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-    if (!audioCtxRef.current) audioCtxRef.current = new AudioContextClass();
+    if (!audioCtxRef.current && AudioContextClass) {
+      audioCtxRef.current = new AudioContextClass();
+    }
     const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    
     if (ctx.state === 'suspended') ctx.resume();
     stopAudio();
 
@@ -303,8 +324,6 @@ const App: React.FC = () => {
     const root = window.document.documentElement;
     const isDark = state.theme === 'dark' || (state.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (isDark) root.classList.add('dark'); else root.classList.remove('dark');
-    root.setAttribute('lang', 'en');
-    root.setAttribute('dir', 'ltr');
   }, [state.theme]);
 
   useEffect(() => {
@@ -352,14 +371,17 @@ const App: React.FC = () => {
     return () => cancelAnimationFrame(animationFrame);
   }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, finalizeSessionAndReset]);
 
-  const currentTheme = useMemo(() => ({
-    blue: { main: '#2563eb', light: '#eff6ff', dark: '#1e40af', subtle: 'rgba(37, 99, 235, 0.1)' },
-    emerald: { main: '#10b981', light: '#ecfdf5', dark: '#065f46', subtle: 'rgba(16, 185, 129, 0.1)' },
-    purple: { main: '#9333ea', light: '#f5f3ff', dark: '#6b21a8', subtle: 'rgba(147, 51, 234, 0.1)' },
-    amber: { main: '#d97706', light: '#fffbeb', dark: '#92400e', subtle: 'rgba(217, 119, 6, 0.1)' },
-    rose: { main: '#e11d48', light: '#fff1f2', dark: '#9f1239', subtle: 'rgba(225, 29, 72, 0.1)' },
-    slate: { main: '#475569', light: '#f8fafc', dark: '#1e293b', subtle: 'rgba(71, 85, 105, 0.1)' }
-  }[state.accentColor]), [state.accentColor]);
+  const currentTheme = useMemo(() => {
+    const themeMap = {
+      blue: { main: '#2563eb', light: '#eff6ff', dark: '#1e40af', subtle: 'rgba(37, 99, 235, 0.1)' },
+      emerald: { main: '#10b981', light: '#ecfdf5', dark: '#065f46', subtle: 'rgba(16, 185, 129, 0.1)' },
+      purple: { main: '#9333ea', light: '#f5f3ff', dark: '#6b21a8', subtle: 'rgba(147, 51, 234, 0.1)' },
+      amber: { main: '#d97706', light: '#fffbeb', dark: '#92400e', subtle: 'rgba(217, 119, 6, 0.1)' },
+      rose: { main: '#e11d48', light: '#fff1f2', dark: '#9f1239', subtle: 'rgba(225, 29, 72, 0.1)' },
+      slate: { main: '#475569', light: '#f8fafc', dark: '#1e293b', subtle: 'rgba(71, 85, 105, 0.1)' }
+    };
+    return themeMap[state.accentColor] || themeMap.blue;
+  }, [state.accentColor]);
 
   const showNav = !state.isFirstTime && state.currentScreen !== Screen.ONBOARDING;
 
