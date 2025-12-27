@@ -11,6 +11,11 @@ import SessionHistory from './components/SessionHistory';
 
 const STORAGE_KEY = 'focus_guardian_v14_state';
 
+// Validate environment variables early
+if (typeof process !== 'undefined' && !process.env.API_KEY) {
+  console.warn("API_KEY is missing from environment variables.");
+}
+
 const App: React.FC = () => {
   const [state, setState] = useState<State>(() => {
     const initialState: State = {
@@ -39,26 +44,24 @@ const App: React.FC = () => {
     };
 
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Deep merge with defaults to ensure any new state properties are present
-        return {
-          ...initialState,
-          ...parsed,
-          isActivated: true, // Force activation state
-          theme: parsed.theme || 'system',
-          accentColor: parsed.accentColor || 'blue',
-          font: parsed.font || 'Inter',
-          sessionLogs: Array.isArray(parsed.sessionLogs) ? parsed.sessionLogs : [],
-          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
-          lastSessionEventTimestamp: parsed.lastSessionEventTimestamp || Date.now(),
-          isSoundEnabled: parsed.isSoundEnabled ?? true,
-          isAnimationsEnabled: parsed.isAnimationsEnabled ?? true,
-        };
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            return {
+              ...initialState,
+              ...parsed,
+              isActivated: true,
+              sessionLogs: Array.isArray(parsed.sessionLogs) ? parsed.sessionLogs : [],
+              tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+              blockLogs: Array.isArray(parsed.blockLogs) ? parsed.blockLogs : [],
+            };
+          }
+        }
       }
     } catch (e) {
-      console.warn('Failed to load state from localStorage:', e);
+      console.error('State Hydration Error:', e);
     }
     return initialState;
   });
@@ -124,9 +127,11 @@ const App: React.FC = () => {
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = window.setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
       } catch (e) {
-        console.warn('Failed to save state to localStorage:', e);
+        console.warn('LocalStorage Save Error:', e);
       }
     }, 1000);
     return () => { if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current); };
@@ -143,7 +148,7 @@ const App: React.FC = () => {
     setState(prev => {
       if (!prev.activeSession) return prev;
       const now = Date.now();
-      let totalBreakMs = prev.activeSession.totalBreakMs;
+      let totalBreakMs = prev.activeSession.totalBreakMs || 0;
       if (prev.activeSession.lastPauseTimestamp) { totalBreakMs += (now - prev.activeSession.lastPauseTimestamp); }
       
       let focusDuration = 0;
@@ -164,7 +169,7 @@ const App: React.FC = () => {
         targetDurationSeconds: prev.timerTotalDurationSeconds,
         actualFocusSeconds: focusDuration, 
         totalBreakSeconds: Math.floor(totalBreakMs / 1000), 
-        breakCount: prev.activeSession.breakCount,
+        breakCount: prev.activeSession.breakCount || 0,
         status: finalStatus, 
         timestamp: now, 
         isCounted: shouldBeCounted
@@ -172,7 +177,7 @@ const App: React.FC = () => {
 
       return { 
         ...prev, 
-        sessionLogs: [...prev.sessionLogs, newSession], 
+        sessionLogs: Array.isArray(prev.sessionLogs) ? [...prev.sessionLogs, newSession] : [newSession], 
         activeSession: null, 
         lastSessionEventTimestamp: now,
         timerEndTimestamp: null,
@@ -189,12 +194,18 @@ const App: React.FC = () => {
       playFeedbackSound('break');
       if (isCurrentlyStarting) {
         let activeSession = prev.activeSession || { startTime: now, breakCount: 0, totalBreakMs: 0, lastPauseTimestamp: null };
-        if (activeSession.lastPauseTimestamp) { activeSession = { ...activeSession, totalBreakMs: activeSession.totalBreakMs + (now - activeSession.lastPauseTimestamp), lastPauseTimestamp: null }; }
+        if (activeSession.lastPauseTimestamp) { 
+          activeSession = { 
+            ...activeSession, 
+            totalBreakMs: (activeSession.totalBreakMs || 0) + (now - activeSession.lastPauseTimestamp), 
+            lastPauseTimestamp: null 
+          }; 
+        }
         const remaining = prev.timerPausedRemainingSeconds !== null ? prev.timerPausedRemainingSeconds : prev.timerTotalDurationSeconds;
         return { ...prev, activeSession, timerEndTimestamp: prev.timerTotalDurationSeconds === 0 ? now - (prev.timerPausedRemainingSeconds || 0) * 1000 : now + remaining * 1000, timerPausedRemainingSeconds: null };
       } else {
         const remaining = prev.timerTotalDurationSeconds === 0 ? Math.floor((now - (prev.timerEndTimestamp || now)) / 1000) : Math.max(0, Math.ceil((prev.timerEndTimestamp - now) / 1000));
-        return { ...prev, timerPausedRemainingSeconds: remaining, activeSession: prev.activeSession ? { ...prev.activeSession, breakCount: prev.activeSession.breakCount + 1, lastPauseTimestamp: now } : null };
+        return { ...prev, timerPausedRemainingSeconds: remaining, activeSession: prev.activeSession ? { ...prev.activeSession, breakCount: (prev.activeSession.breakCount || 0) + 1, lastPauseTimestamp: now } : null };
       }
     });
   }, [playFeedbackSound]);
@@ -225,7 +236,7 @@ const App: React.FC = () => {
     
     const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
     if (!audioCtxRef.current && AudioContextClass) {
-      audioCtxRef.current = new AudioContextClass();
+      try { audioCtxRef.current = new AudioContextClass(); } catch(e) {}
     }
     const ctx = audioCtxRef.current;
     if (!ctx) return;
@@ -405,9 +416,9 @@ const App: React.FC = () => {
           
           {state.currentScreen === Screen.HOME && (
             <Focus 
-              userName={state.userName} 
+              userName={state.userName || ''} 
               profileImage={state.profileImage} 
-              tasks={state.tasks} 
+              tasks={Array.isArray(state.tasks) ? state.tasks : []} 
               activeTaskId={state.activeTaskId} 
               timerSeconds={timerDisplaySeconds} 
               totalSeconds={state.timerTotalDurationSeconds} 
@@ -436,18 +447,18 @@ const App: React.FC = () => {
           
           {state.currentScreen === Screen.TASKS && (
             <Tasks 
-              tasks={state.tasks} 
+              tasks={Array.isArray(state.tasks) ? state.tasks : []} 
               activeTaskId={state.activeTaskId} 
               isTimerActive={isTimerActive} 
               onAddTask={(text) => setState(p => ({
                 ...p, 
-                tasks: [...p.tasks, {
+                tasks: [...(Array.isArray(p.tasks) ? p.tasks : []), {
                   id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null
                 }]
               }))} 
               onToggleTask={(id) => { 
                 setState(p => { 
-                  const task = p.tasks.find(t => t.id === id); 
+                  const task = Array.isArray(p.tasks) ? p.tasks.find(t => t.id === id) : null; 
                   if (!task) return p; 
                   if (!task.completed) playFeedbackSound('task'); 
                   return { 
@@ -462,10 +473,10 @@ const App: React.FC = () => {
               }} 
               onUpdateTask={(id, text) => setState(p => ({
                 ...p,
-                tasks: p.tasks.map(t => t.id === id ? { ...t, text } : t)
+                tasks: Array.isArray(p.tasks) ? p.tasks.map(t => t.id === id ? { ...t, text } : t) : []
               }))}
               onDeleteTask={(id) => setState(p => ({
-                ...p, tasks: p.tasks.filter(t => t.id !== id), activeTaskId: p.activeTaskId === id ? null : p.activeTaskId
+                ...p, tasks: Array.isArray(p.tasks) ? p.tasks.filter(t => t.id !== id) : [], activeTaskId: p.activeTaskId === id ? null : p.activeTaskId
               }))} 
               onSetActiveTask={(id) => setState(p => ({ ...p, activeTaskId: id }))} 
             />
@@ -479,10 +490,10 @@ const App: React.FC = () => {
               isSoundEnabled={state.isSoundEnabled} 
               isAnimationsEnabled={state.isAnimationsEnabled}
               focusSound={state.focusSound} 
-              userName={state.userName} 
+              userName={state.userName || ''} 
               profileImage={state.profileImage} 
               signatureImage={state.signatureImage} 
-              sessionLogs={state.sessionLogs} 
+              sessionLogs={Array.isArray(state.sessionLogs) ? state.sessionLogs : []} 
               onThemeChange={(t) => setState(p => ({ ...p, theme: t }))} 
               onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))} 
               onFontChange={(f) => setState(p => ({ ...p, font: f }))} 
@@ -498,7 +509,7 @@ const App: React.FC = () => {
           {state.currentScreen === Screen.MARKET && <Market balance={state.balance} onPurchase={() => {}} />}
           
           {state.currentScreen === Screen.SESSION_HISTORY && (
-            <SessionHistory sessions={state.sessionLogs} />
+            <SessionHistory sessions={Array.isArray(state.sessionLogs) ? state.sessionLogs : []} />
           )}
         </Layout>
       </div>
