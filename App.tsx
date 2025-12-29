@@ -62,8 +62,10 @@ const App: React.FC = () => {
   const [isAppFullscreen, setIsAppFullscreen] = useState(false);
 
   const isTimerActive = useMemo(() => 
-    state.timerEndTimestamp !== null && state.timerPausedRemainingSeconds === null
+    state.timerEndTimestamp !== null || state.timerPausedRemainingSeconds !== null
   , [state.timerEndTimestamp, state.timerPausedRemainingSeconds]);
+
+  const isPaused = useMemo(() => state.timerPausedRemainingSeconds !== null, [state.timerPausedRemainingSeconds]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -75,14 +77,15 @@ const App: React.FC = () => {
 
   const finalizeSessionAndReset = useCallback((status: 'completed' | 'canceled') => {
     setState(prev => {
-      if (!prev.activeSession) return prev;
+      if (!prev.activeSession && !isTimerActive) return prev;
       const now = Date.now();
+      const actualDuration = prev.timerTotalDurationSeconds - timerDisplaySeconds;
       const newSession: FocusSession = {
         id: `session_${now}`, 
-        startTime: prev.activeSession.startTime, 
+        startTime: prev.activeSession?.startTime || now, 
         endTime: now, 
         targetDurationSeconds: prev.timerTotalDurationSeconds,
-        actualFocusSeconds: prev.timerTotalDurationSeconds, 
+        actualFocusSeconds: Math.max(0, actualDuration), 
         totalBreakSeconds: 0, 
         breakCount: 0,
         status, 
@@ -98,22 +101,24 @@ const App: React.FC = () => {
         balance: status === 'completed' ? prev.balance + 100 : prev.balance
       };
     });
-  }, []);
+  }, [timerDisplaySeconds, isTimerActive]);
 
   const toggleTimerAction = useCallback(() => {
     const now = Date.now();
     setState(prev => {
-      const isStarting = prev.timerPausedRemainingSeconds !== null || (!prev.timerEndTimestamp);
-      if (isStarting) {
+      const isStartingOrResuming = prev.timerPausedRemainingSeconds !== null || (!prev.timerEndTimestamp);
+      if (isStartingOrResuming) {
         const remaining = prev.timerPausedRemainingSeconds !== null ? prev.timerPausedRemainingSeconds : prev.timerTotalDurationSeconds;
         return { 
           ...prev, 
           activeSession: prev.activeSession || { startTime: now, breakCount: 0, totalBreakMs: 0, lastPauseTimestamp: null },
-          timerEndTimestamp: now + (remaining * 1000), 
+          timerEndTimestamp: prev.timerTotalDurationSeconds === 0 ? now + 999999999 : now + (remaining * 1000), 
           timerPausedRemainingSeconds: null 
         };
       } else {
-        const remaining = Math.max(0, Math.ceil(((prev.timerEndTimestamp || 0) - now) / 1000));
+        const remaining = prev.timerTotalDurationSeconds === 0 ? 
+          Math.ceil((now - (prev.activeSession?.startTime || now)) / 1000) : 
+          Math.max(0, Math.ceil(((prev.timerEndTimestamp || 0) - now) / 1000));
         return { ...prev, timerPausedRemainingSeconds: remaining, timerEndTimestamp: null };
       }
     });
@@ -130,8 +135,13 @@ const App: React.FC = () => {
     const updateTimer = () => {
       const now = Date.now();
       if (state.timerEndTimestamp && state.timerPausedRemainingSeconds === null) {
-        const diff = Math.ceil((state.timerEndTimestamp - now) / 1000);
-        if (diff <= 0) { finalizeSessionAndReset('completed'); } else { setTimerDisplaySeconds(diff); }
+        if (state.timerTotalDurationSeconds === 0) {
+          const start = state.activeSession?.startTime || now;
+          setTimerDisplaySeconds(Math.floor((now - start) / 1000));
+        } else {
+          const diff = Math.ceil((state.timerEndTimestamp - now) / 1000);
+          if (diff <= 0) { finalizeSessionAndReset('completed'); } else { setTimerDisplaySeconds(diff); }
+        }
       } else if (state.timerPausedRemainingSeconds !== null) { 
         setTimerDisplaySeconds(state.timerPausedRemainingSeconds); 
       } else { 
@@ -141,7 +151,7 @@ const App: React.FC = () => {
     };
     animationFrame = requestAnimationFrame(updateTimer); 
     return () => cancelAnimationFrame(animationFrame);
-  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, finalizeSessionAndReset]);
+  }, [state.timerEndTimestamp, state.timerPausedRemainingSeconds, state.timerTotalDurationSeconds, state.activeSession, finalizeSessionAndReset]);
 
   const currentTheme = useMemo(() => {
     const themeMap = {
@@ -180,10 +190,18 @@ const App: React.FC = () => {
               <Focus 
                 userName={state.userName} profileImage={state.profileImage} tasks={state.tasks} activeTaskId={state.activeTaskId} 
                 timerSeconds={timerDisplaySeconds} totalSeconds={state.timerTotalDurationSeconds} 
-                isTimerActive={isTimerActive} isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound}
-                onToggleTimer={toggleTimerAction} onToggleMode={() => setState(prev => ({ ...prev, timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0 }))}
-                onSetTimerSeconds={(s) => setState(prev => ({ ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null }))}
+                isTimerActive={isTimerActive} isPaused={isPaused} isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound}
+                onToggleTimer={toggleTimerAction} 
+                onToggleMode={() => setState(prev => ({ 
+                  ...prev, 
+                  timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0,
+                  timerEndTimestamp: null,
+                  timerPausedRemainingSeconds: null,
+                  activeSession: null
+                }))}
+                onSetTimerSeconds={(s) => setState(prev => ({ ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null, activeSession: null }))}
                 onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
+                onEndSession={() => finalizeSessionAndReset('canceled')}
                 isAppFullscreen={isAppFullscreen} setIsAppFullscreen={setIsAppFullscreen}
               />
             </motion.div>
@@ -192,7 +210,7 @@ const App: React.FC = () => {
           {state.currentScreen === Screen.TASKS && (
             <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
               <Tasks 
-                tasks={state.tasks} activeTaskId={state.activeTaskId} isTimerActive={isTimerActive}
+                tasks={state.tasks} activeTaskId={state.activeTaskId} isTimerActive={isTimerActive && !isPaused}
                 onAddTask={(text) => setState(p => ({ ...p, tasks: [...p.tasks, { id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null }] }))}
                 onToggleTask={(id) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? Date.now() : null } : t) }))}
                 onDeleteTask={(id) => setState(p => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) }))}

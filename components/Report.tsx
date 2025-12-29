@@ -38,23 +38,23 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
 
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div 
-          className="p-6 rounded-[32px] border transition-all duration-300"
+          className="p-8 rounded-full border transition-all duration-300 flex flex-col items-center justify-center text-center"
           style={{ 
             backgroundColor: 'var(--accent-subtle)', 
             borderColor: 'var(--accent-subtle)' 
           }}
         >
           <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--accent-color)' }}>Total Blocks</p>
-          <p className="text-4xl font-black" style={{ color: 'var(--accent-color)' }}>{totalBlocks}</p>
+          <p className="text-5xl font-black" style={{ color: 'var(--accent-color)' }}>{totalBlocks}</p>
         </div>
-        <div className="bg-emerald-50 dark:bg-emerald-900/30 p-6 rounded-[32px] border border-emerald-100 dark:border-emerald-800">
+        <div className="bg-emerald-50 dark:bg-emerald-900/30 p-8 rounded-full border border-emerald-100 dark:border-emerald-800 flex flex-col items-center justify-center text-center">
           <p className="text-[10px] font-black text-emerald-400 dark:text-emerald-300 uppercase tracking-widest mb-1">Status</p>
-          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-2">Active</p>
+          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">Active</p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[32px] p-6 shadow-sm mb-10">
-        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-6 px-2">Blocked apps</h3>
+      <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-[48px] p-10 shadow-sm mb-10">
+        <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-8 px-2">Focus Resistance</h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} layout="vertical">
@@ -65,7 +65,7 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
                 type="category" 
                 width={70} 
                 fontSize={10} 
-                fontWeight={700}
+                fontWeight={900}
                 axisLine={false} 
                 tickLine={false}
                 stroke="#64748b"
@@ -74,7 +74,7 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
               <Tooltip 
                 cursor={{ fill: 'transparent' }}
                 contentStyle={{ 
-                  borderRadius: '16px', 
+                  borderRadius: '24px', 
                   border: 'none', 
                   boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                   backgroundColor: 'rgba(30, 41, 59, 0.9)',
@@ -83,7 +83,7 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
                   fontWeight: 'bold'
                 }}
               />
-              <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={24}>
+              <Bar dataKey="count" radius={[0, 12, 12, 0]} barSize={24}>
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
@@ -98,19 +98,19 @@ const Report: React.FC<ReportProps> = ({ logs }) => {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest px-2">Latest activity</h3>
+        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest px-6">Latest activity</h3>
         {logs.length === 0 ? (
-          <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/40 rounded-[32px] border border-dashed border-slate-200 dark:border-slate-700">
+          <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/40 rounded-full border border-dashed border-slate-200 dark:border-slate-700">
             <p className="text-sm italic text-slate-400 dark:text-slate-500 font-medium">No distractions detected.</p>
           </div>
         ) : (
           logs.slice(-5).reverse().map((log, idx) => (
-            <div key={idx} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-50 dark:border-slate-700">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 rounded-full bg-red-400"></div>
+            <div key={idx} className="flex items-center justify-between p-5 bg-white dark:bg-slate-800 rounded-full border border-slate-50 dark:border-slate-700">
+              <div className="flex items-center space-x-4 px-2">
+                <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Attempted {log.appName}</p>
               </div>
-              <p className="text-[10px] text-slate-400 dark:text-slate-400 font-black uppercase tracking-tighter">
+              <p className="text-[10px] text-slate-400 dark:text-slate-400 font-black uppercase tracking-widest px-4">
                 {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>

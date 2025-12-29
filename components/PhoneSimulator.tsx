@@ -29,14 +29,14 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
     if (isUnlocked) return null;
     
     if (app.isPermanentBlock) {
-        return <span className="text-[7px] bg-red-900 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">CORE</span>;
+        return <span className="text-[7px] bg-red-900 text-white px-1.5 py-0.5 rounded-full absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">CORE</span>;
     }
 
     if (isTimerRunning && !app.isAllowed) {
-        return <span className="text-[8px] bg-red-600 text-white px-1 rounded absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">FOCUS</span>;
+        return <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full absolute -top-1 -right-1 font-black shadow-sm z-10 animate-in zoom-in duration-300">FOCUS</span>;
     }
 
-    if (!app.isAllowed) return <span className="text-[8px] bg-red-500 text-white px-1 rounded absolute -top-1 -right-1 font-black z-10 animate-in zoom-in duration-300">LOCKED</span>;
+    if (!app.isAllowed) return <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full absolute -top-1 -right-1 font-black z-10 animate-in zoom-in duration-300">LOCKED</span>;
     
     return null;
   };
@@ -63,13 +63,13 @@ const PhoneSimulator: React.FC<PhoneSimulatorProps> = ({
               style={{ animationDelay: `${index * 30}ms` }}
             >
               <div 
-                className={`w-14 h-14 bg-transparent relative transition-all duration-300 
+                className={`w-14 h-14 bg-transparent relative transition-all duration-300 rounded-full overflow-hidden shadow-lg
                 ${(!app.isAllowed) ? 'opacity-40 grayscale' : 'opacity-100 grayscale-0'} hover:scale-105 active:scale-90`}
               >
                 <AppIcon appId={app.id} className="w-full h-full" />
                 {getStatusLabel(app)}
               </div>
-              <span className="text-[10px] font-medium opacity-90 truncate w-full text-center">{app.name}</span>
+              <span className="text-[10px] font-black uppercase tracking-tighter opacity-90 truncate w-full text-center">{app.name}</span>
             </button>
           );
         })}
