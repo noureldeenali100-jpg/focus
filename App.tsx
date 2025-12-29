@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Screen, State, FocusSession, Screen as ScreenType, Task } from './types';
+import { Screen, State, FocusSession, Screen as ScreenType } from './types';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
 import Focus from './components/Focus';
@@ -234,6 +234,7 @@ const App: React.FC = () => {
                 onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
                 onNameChange={(name) => setState(p => ({ ...p, userName: name }))}
                 onProfileImageChange={(img) => setState(p => ({ ...p, profileImage: img }))}
+                onSignatureChange={(img) => setState(p => ({ ...p, signatureImage: img }))}
                 onNavigate={navigate}
               />
             </motion.div>

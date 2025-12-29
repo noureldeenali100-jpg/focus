@@ -15,7 +15,6 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({ imageSrc, onCrop, onCance
   const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
   const lastDistanceRef = useRef<number | null>(null);
 
-  // Initialize image dimensions and center it
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     const container = containerRef.current;
@@ -24,7 +23,6 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({ imageSrc, onCrop, onCance
     const containerSize = container.offsetWidth;
     let initialScale = 1;
     
-    // Fit image to container at minimum
     if (naturalWidth < naturalHeight) {
       initialScale = containerSize / naturalWidth;
     } else {
@@ -36,7 +34,6 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({ imageSrc, onCrop, onCance
     setOffset({ x: 0, y: 0 });
   };
 
-  // Drag logic
   const handleMove = useCallback((dx: number, dy: number) => {
     setOffset(prev => ({
       x: prev.x + dx,
@@ -44,64 +41,48 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({ imageSrc, onCrop, onCance
     }));
   }, []);
 
-  // Zoom logic
-  const handleZoom = useCallback((delta: number, centerX: number, centerY: number) => {
-    setScale(prevScale => {
-      const newScale = Math.max(0.5, Math.min(prevScale + delta, 5));
-      return newScale;
-    });
+  const handleZoom = useCallback((delta: number) => {
+    setScale(prevScale => Math.max(0.3, Math.min(prevScale + delta, 6)));
   }, []);
 
-  // Mouse Events
   const onMouseDown = (e: React.MouseEvent) => {
     lastTouchRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const onMouseMove = (e: React.MouseEvent) => {
     if (!lastTouchRef.current) return;
-    const dx = e.clientX - lastTouchRef.current.x;
-    const dy = e.clientY - lastTouchRef.current.y;
-    handleMove(dx, dy);
+    handleMove(e.clientX - lastTouchRef.current.x, e.clientY - lastTouchRef.current.y);
     lastTouchRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  const onMouseUp = () => {
-    lastTouchRef.current = null;
-  };
+  const onMouseUp = () => { lastTouchRef.current = null; };
 
   const onWheel = (e: React.WheelEvent) => {
-    const delta = e.deltaY * -0.001;
-    handleZoom(delta, e.clientX, e.clientY);
+    handleZoom(e.deltaY * -0.001);
   };
 
-  // Touch Events
   const onTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       lastDistanceRef.current = null;
     } else if (e.touches.length === 2) {
-      const d = Math.hypot(
+      lastDistanceRef.current = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      lastDistanceRef.current = d;
-      lastTouchRef.current = null;
     }
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 1 && lastTouchRef.current) {
-      const dx = e.touches[0].clientX - lastTouchRef.current.x;
-      const dy = e.touches[0].clientY - lastTouchRef.current.y;
-      handleMove(dx, dy);
+      handleMove(e.touches[0].clientX - lastTouchRef.current.x, e.touches[0].clientY - lastTouchRef.current.y);
       lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     } else if (e.touches.length === 2 && lastDistanceRef.current) {
       const d = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      const delta = (d - lastDistanceRef.current) * 0.01;
-      handleZoom(delta, 0, 0);
+      handleZoom((d - lastDistanceRef.current) * 0.01);
       lastDistanceRef.current = d;
     }
   };
@@ -117,33 +98,20 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({ imageSrc, onCrop, onCance
     if (!container || !img) return;
 
     const canvas = document.createElement('canvas');
-    const cropSize = 500; // Output resolution
+    const cropSize = 800; // Premium resolution
     canvas.width = cropSize;
     canvas.height = cropSize;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // The logic: 
-    // We want the area currently visible in the circular window
     const viewSize = container.offsetWidth;
     const ratio = cropSize / viewSize;
 
-    // Calculate source rect
-    // Centered in the container:
-    const centerX = viewSize / 2;
-    const centerY = viewSize / 2;
-
     ctx.save();
-    // Draw white background if needed, or transparent
     ctx.clearRect(0, 0, cropSize, cropSize);
-    
-    // Position context to draw image
-    // offset is relative to the center of the container
     ctx.translate(cropSize / 2, cropSize / 2);
     ctx.scale(scale * ratio, scale * ratio);
     ctx.translate(offset.x / scale, offset.y / scale);
-    
-    // Draw image centered at the translated origin
     ctx.drawImage(img, -imgSize.width / 2, -imgSize.height / 2);
     ctx.restore();
 
@@ -151,49 +119,29 @@ const AvatarCropper: React.FC<AvatarCropperProps> = ({ imageSrc, onCrop, onCance
   };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300 touch-none">
-      <div className="absolute top-10 left-0 right-0 flex justify-between px-8 z-50">
-        <button onClick={onCancel} className="text-white text-sm font-bold uppercase tracking-widest px-4 py-2 hover:bg-white/10 rounded-xl transition-all">Cancel</button>
-        <button onClick={performCrop} className="text-[var(--accent-color)] text-sm font-black uppercase tracking-widest px-6 py-2 bg-white rounded-xl shadow-xl active:scale-95 transition-all">Apply</button>
+    <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300 touch-none">
+      <div className="absolute top-10 left-0 right-0 flex justify-between px-8 z-[510]">
+        <button onClick={onCancel} className="text-white text-sm font-black uppercase tracking-widest bg-white/10 px-6 py-3 rounded-2xl">Cancel</button>
+        <button onClick={performCrop} className="text-white text-sm font-black uppercase tracking-widest bg-[var(--accent-color)] px-8 py-3 rounded-2xl shadow-xl">Apply</button>
       </div>
 
       <div className="w-full max-w-sm aspect-square relative flex items-center justify-center" ref={containerRef}>
-        {/* Background Overlay */}
-        <div className="absolute inset-0 z-20 pointer-events-none">
-          <div className="w-full h-full border-[100vw] border-black/60 box-content -ml-[100vw] -mt-[100vw] rounded-full"></div>
-          {/* Visual Circle Outline */}
-          <div className="absolute inset-0 border-2 border-white/30 rounded-full shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]"></div>
-        </div>
-
-        {/* The Image */}
+        <div className="absolute inset-0 z-20 pointer-events-none rounded-full ring-[4000px] ring-black/80 ring-offset-0 border-2 border-white/40" />
         <div 
           className="cursor-move select-none"
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
-          onWheel={onWheel}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp} onWheel={onWheel}
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         >
           <img
-            ref={imgRef}
-            src={imageSrc}
-            onLoad={onImageLoad}
-            style={{
-              transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
-              maxWidth: 'none',
-              display: 'block'
-            }}
-            draggable={false}
-            alt="To crop"
+            ref={imgRef} src={imageSrc} onLoad={onImageLoad}
+            style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`, maxWidth: 'none', display: 'block' }}
+            draggable={false} alt="Cropping Area"
           />
         </div>
       </div>
 
-      <div className="mt-12 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] px-10 text-center">
-        Drag to reposition • Pinch to zoom
+      <div className="mt-20 text-white/40 text-[10px] font-black uppercase tracking-[0.4em] px-10 text-center animate-pulse">
+        Drag to Center • Pinch to Scale
       </div>
     </div>
   );
