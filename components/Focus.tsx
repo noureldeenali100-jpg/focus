@@ -1,10 +1,10 @@
 /**
  * Focus Dashboard Component.
- * The primary interface for controlling focus timers and sessions.
- * Features ultra-precise SVG progress indicators and elastic UI scaling.
+ * Restored Legacy Visuals + SaaS Architecture + Framer Motion Enhancements.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Task, FocusSound } from '../types';
 import { MOTIVATIONAL_QUOTES } from '../constants';
 
@@ -30,28 +30,10 @@ const Focus: React.FC<FocusProps> = ({
     let interval: number | undefined;
     if (isTimerActive) {
       setQuoteIndex(Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length));
-      interval = window.setInterval(() => { setQuoteIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length); }, 20000); 
+      interval = window.setInterval(() => { setQuoteIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length); }, 15000); 
     } else { setQuoteIndex(0); }
     return () => clearInterval(interval);
   }, [isTimerActive]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement
-      );
-      if (!isCurrentlyFullscreen) setIsAppFullscreen(false);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    };
-  }, [setIsAppFullscreen]);
 
   const enterFullscreen = useCallback(async () => {
     const docEl = document.documentElement as any;
@@ -71,120 +53,193 @@ const Focus: React.FC<FocusProps> = ({
   const secs = timerSeconds % 60;
   const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
 
-  // ELASTIC SCALING ENGINE:
-  // Dynamically centers the circle and scales it to fill available space
-  // without breaking the aspect ratio.
-  const sizeClass = "w-[min(75vw,55vh,500px)] aspect-square";
+  // Elastic Scaling Architecture
+  // Ensures perfect circularity and centering across all devices.
+  const sizeClass = "w-[min(72vw,56vh,480px)] aspect-square";
   const radius = 250; 
-  const strokeWidth = 14;
+  const strokeWidth = 12;
   const circumference = 2 * Math.PI * radius;
   const progress = totalSeconds > 0 ? (timerSeconds / totalSeconds) : 0;
   const offset = circumference * (1 - progress);
   
-  const currentQuote = MOTIVATIONAL_QUOTES[quoteIndex]; 
-
   return (
-    <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 transition-colors duration-500 overflow-hidden relative">
-      {/* Precision Header Bar - Using Clamp for fluid padding */}
-      <header className="h-16 lg:h-24 shrink-0 flex items-center justify-between px-[clamp(1rem,5vw,3rem)] w-full z-40 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md border-b border-slate-200/40 dark:border-slate-800/40">
+    <div className="flex flex-col h-full w-full bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-500 overflow-hidden relative">
+      {/* Tactical Top Bar */}
+      <header className="h-20 lg:h-28 shrink-0 flex items-center justify-between px-[clamp(1.5rem,6vw,4rem)] w-full z-40">
         <div className="relative">
-          <button onClick={() => setShowSounds(!showSounds)} className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-[var(--accent-color)] active:scale-90 transition-all">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-          </button>
-          {showSounds && (
-            <div className="absolute top-full mt-4 left-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-3 flex flex-col min-w-[200px] z-[60] animate-zoom-in">
-              {['none', 'rain', 'clock', 'library'].map((id) => (
-                <button key={id} onClick={() => {onSetFocusSound(id as FocusSound); setShowSounds(false);}} className={`py-4 px-6 text-xs font-black uppercase tracking-widest rounded-[1.5rem] text-left transition-all ${focusSound === id ? 'bg-[var(--accent-subtle)] text-[var(--accent-color)]' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}> {id} </button>
-              ))}
-            </div>
-          )}
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSounds(!showSounds)} 
+            className="w-12 h-12 lg:w-14 lg:h-14 rounded-[18px] bg-white dark:bg-slate-900 shadow-[4px_4px_10px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-[var(--accent-color)] active:scale-90 transition-all"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </motion.button>
+          <AnimatePresence>
+            {showSounds && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute top-full mt-4 left-0 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[28px] p-3 flex flex-col min-w-[200px] z-[60]"
+              >
+                {['none', 'rain', 'clock', 'library'].map((id) => (
+                  <button key={id} onClick={() => {onSetFocusSound(id as FocusSound); setShowSounds(false);}} className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest rounded-[18px] text-left transition-all ${focusSound === id ? 'bg-[var(--accent-subtle)] text-[var(--accent-color)]' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}> {id} </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="text-center flex-1 max-w-[200px] lg:max-w-md">
-          <h4 className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-0.5">Focus Mode</h4>
-          <p className="text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">{userName || 'Guardian'}</p>
+        <div className="text-center">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-1">Guardian Mode</h4>
+          <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">{userName || 'Digital Shield'}</p>
         </div>
         
-        <button onClick={enterFullscreen} className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-[var(--accent-color)] active:scale-90 transition-all">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-        </button>
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={enterFullscreen} 
+          className="w-12 h-12 lg:w-14 lg:h-14 rounded-[18px] bg-white dark:bg-slate-900 shadow-[4px_4px_10px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-[var(--accent-color)] active:scale-90 transition-all"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </motion.button>
       </header>
 
-      {/* Elastic Content Stage */}
-      <section className="flex-1 flex flex-col items-center justify-center px-[clamp(1rem,5vw,3rem)] py-6 relative">
-        <div className={`relative ${sizeClass} flex items-center justify-center transform-gpu transition-all duration-700 ease-out`}>
-          {/* Progress Circle SVG - using vector-effect for visual consistency */}
-          <svg className="absolute w-full h-full -rotate-90 drop-shadow-2xl" viewBox="0 0 540 540">
-            <circle cx="270" cy="270" r={radius} stroke="currentColor" strokeWidth={strokeWidth - 2} fill="transparent" className="text-slate-200 dark:text-slate-800/40" vectorEffect="non-scaling-stroke" />
-            <circle cx="270" cy="270" r={radius} stroke="var(--accent-color)" strokeWidth={strokeWidth} fill="transparent" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-[stroke-dashoffset] duration-300 ease-linear" vectorEffect="non-scaling-stroke" />
+      {/* Hero Interaction Stage */}
+      <section className="flex-1 flex flex-col items-center justify-center p-6 relative">
+        <motion.div 
+          animate={isTimerActive ? { scale: [1, 1.01, 1] } : { scale: 1 }}
+          transition={isTimerActive ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}
+          className={`relative ${sizeClass} flex items-center justify-center group`}
+        >
+          {/* Neumorphic Shadow Ring */}
+          <div className="absolute inset-[-10px] rounded-full shadow-[8px_8px_20px_rgba(0,0,0,0.04),-8px_-8px_20px_rgba(255,255,255,0.8)] dark:shadow-none pointer-events-none" />
+          
+          {/* Progress Architecture */}
+          <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 540 540">
+            <circle cx="270" cy="270" r={radius} stroke="currentColor" strokeWidth={strokeWidth - 2} fill="transparent" className="text-slate-100 dark:text-slate-800/40" />
+            <motion.circle 
+              cx="270" 
+              cy="270" 
+              r={radius} 
+              stroke="var(--accent-color)" 
+              strokeWidth={strokeWidth} 
+              fill="transparent" 
+              strokeDasharray={circumference} 
+              animate={{ strokeDashoffset: offset }}
+              transition={{ duration: 1, ease: "linear" }}
+              strokeLinecap="round" 
+              vectorEffect="non-scaling-stroke"
+              style={{ filter: isTimerActive ? 'drop-shadow(0 0 8px var(--accent-color))' : 'none' }}
+            />
           </svg>
 
-          {/* Time & Task Centerpoint */}
-          <div className="flex flex-col items-center justify-center text-center z-10 pointer-events-none px-10">
-            <div className={`text-[clamp(3.5rem,15vh,10rem)] font-black tracking-tighter leading-none tabular-nums transition-colors duration-500 ${isTimerActive ? 'text-slate-900 dark:text-white' : 'text-slate-300 dark:text-slate-700'}`}>
+          {/* Time & Mission Overlay */}
+          <div className="flex flex-col items-center justify-center text-center z-10 pointer-events-none px-12">
+            <motion.div 
+              key={timeStr}
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              className={`text-[clamp(4rem,16vh,9rem)] font-black tracking-tighter leading-none tabular-nums transition-all duration-700 ${isTimerActive ? 'text-slate-900 dark:text-white' : 'text-slate-200 dark:text-slate-800'}`}>
               {timeStr}
-            </div>
+            </motion.div>
             {activeTaskId && tasks.find(t => t.id === activeTaskId) && (
-              <p className="mt-4 lg:mt-8 text-[clamp(11px,2.2vh,18px)] font-black uppercase text-[var(--accent-color)] tracking-[0.3em] animate-fade-in max-w-[200px] lg:max-w-md truncate">
+              <p className="mt-4 lg:mt-8 text-[clamp(11px,2vh,18px)] font-black uppercase text-[var(--accent-color)] tracking-[0.4em] animate-fade-in max-w-[220px] lg:max-w-md truncate">
                 {tasks.find(t => t.id === activeTaskId)?.text}
               </p>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Tactical Control Bar */}
-        <div className="flex items-center justify-center gap-[clamp(1.5rem,5vw,4rem)] mt-[clamp(2rem,5vh,5rem)] z-20">
+        {/* Tactical Control Cluster */}
+        <div className="flex items-center justify-center gap-[clamp(1.5rem,6vw,4rem)] mt-[clamp(2rem,6vh,6rem)] z-20">
           <div className="relative">
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               disabled={isTimerActive} 
               onClick={() => setShowDurations(!showDurations)} 
-              className="w-14 h-14 lg:w-16 lg:h-16 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 active:scale-90 transition-all disabled:opacity-30 hover:text-[var(--accent-color)]"
+              className="w-16 h-16 lg:w-20 lg:h-20 rounded-[24px] bg-white dark:bg-slate-900 shadow-[6px_6px_15px_rgba(0,0,0,0.06)] border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 active:scale-90 transition-all disabled:opacity-30 hover:text-[var(--accent-color)]"
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </button>
-            {showDurations && (
-              <div className="absolute bottom-full mb-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2.5rem] p-4 flex flex-col min-w-[220px] z-50 animate-zoom-in">
-                {[15, 25, 45, 60].map(d => (
-                  <button key={d} onClick={() => {onSetTimerSeconds(d*60); setShowDurations(false);}} className="py-4 px-6 text-sm font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-[var(--accent-subtle)] hover:text-[var(--accent-color)] rounded-[1.5rem] text-left transition-all"> {d} Minutes </button>
-                ))}
-              </div>
-            )}
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </motion.button>
+            <AnimatePresence>
+              {showDurations && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  className="absolute bottom-full mb-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[32px] p-4 flex flex-col min-w-[240px] z-50"
+                >
+                  {[15, 25, 45, 60].map(d => (
+                    <button key={d} onClick={() => {onSetTimerSeconds(d*60); setShowDurations(false);}} className="py-4 px-6 text-sm font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-[var(--accent-subtle)] hover:text-[var(--accent-color)] rounded-[20px] text-left transition-all"> {d} Minutes </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onToggleTimer} 
-            className={`w-24 h-24 lg:w-32 lg:h-32 rounded-[3.5rem] flex items-center justify-center transition-all duration-500 shadow-2xl active:scale-95 hover:brightness-110 ${isTimerActive ? 'bg-orange-500 text-white' : 'bg-[var(--accent-color)] text-white'}`}
+            className={`w-28 h-28 lg:w-36 lg:h-36 rounded-[40px] flex items-center justify-center transition-all duration-700 shadow-[10px_10px_30px_rgba(0,0,0,0.1)] active:scale-95 hover:brightness-110 ${isTimerActive ? 'bg-orange-500 text-white' : 'bg-[var(--accent-color)] text-white'}`}
           >
             {isTimerActive ? (
-              <svg width="40" height="40" fill="currentColor"><rect x="8" y="4" width="6" height="32" rx="2"/><rect x="26" y="4" width="6" height="32" rx="2"/></svg>
+              <svg width="44" height="44" fill="currentColor"><rect x="10" y="4" width="6" height="36" rx="2"/><rect x="28" y="4" width="6" height="36" rx="2"/></svg>
             ) : (
-              <svg width="40" height="40" fill="currentColor" className="ml-2"><path d="M5 3l28 17-28 17V3z" /></svg>
+              <svg width="44" height="44" fill="currentColor" className="ml-2"><path d="M5 3l30 21-30 21V3z" /></svg>
             )}
-          </button>
+          </motion.button>
 
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onToggleMode}
-            className="w-14 h-14 lg:w-16 lg:h-16 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 active:scale-90 transition-all hover:text-orange-500"
+            className="w-16 h-16 lg:w-20 lg:h-20 rounded-[24px] bg-white dark:bg-slate-900 shadow-[6px_6px_15px_rgba(0,0,0,0.06)] border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 active:scale-90 transition-all hover:text-orange-500"
           >
-             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 2h4"/><path d="M12 14v-4"/><path d="M4 13a8 8 0 1 0 16 0 8 8 0 1 0-16 0z"/><path d="M12 2v2"/></svg>
-          </button>
+             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 2h4"/><path d="M12 14v-4"/><path d="M4 13a8 8 0 1 0 16 0 8 8 0 1 0-16 0z"/><path d="M12 2v2"/></svg>
+          </motion.button>
         </div>
 
-        {/* Motivational Component */}
-        <div className="mt-[clamp(2rem,5vh,5rem)] h-12 flex items-center justify-center px-12 text-center">
-          <p key={quoteIndex} className="text-[clamp(11px,1.8vh,16px)] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-slate-600 animate-in fade-in slide-in-from-bottom duration-1000">
-            {isTimerActive ? currentQuote : "Protocol: Achieve Excellence"}
-          </p>
+        {/* Motivational Status */}
+        <div className="mt-[clamp(2.5rem,7vh,8rem)] h-16 flex items-center justify-center px-12 text-center">
+          <AnimatePresence mode="wait">
+            <motion.p 
+              key={quoteIndex} 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="text-[clamp(11px,1.8vh,16px)] font-black uppercase tracking-[0.5em] text-slate-400 dark:text-slate-600"
+            >
+              {isTimerActive ? MOTIVATIONAL_QUOTES[quoteIndex] : "PROTOCOL ACTIVE • STANDBY"}
+            </motion.p>
+          </AnimatePresence>
         </div>
       </section>
 
-      {/* Immersive Fullscreen Overlay */}
-      {isAppFullscreen && (
-        <div onClick={exitFullscreen} className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer animate-in fade-in">
-           <div className="text-[min(25vw,35vh)] font-black text-white tabular-nums drop-shadow-[0_0_50px_rgba(37,99,235,0.4)]">{timeStr}</div>
-           <p className="text-white/20 text-[10px] font-black uppercase tracking-[1em] mt-24 animate-pulse">Tap to resume workstation</p>
-        </div>
-      )}
+      {/* Immersive Overlay */}
+      <AnimatePresence>
+        {isAppFullscreen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={exitFullscreen} 
+            className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center cursor-pointer"
+          >
+             <motion.div 
+               initial={{ scale: 0.8 }}
+               animate={{ scale: 1 }}
+               className="text-[min(28vw,40vh)] font-black text-white tabular-nums drop-shadow-[0_0_60px_rgba(37,99,235,0.5)]"
+             >
+               {timeStr}
+             </motion.div>
+             <p className="text-white/20 text-[11px] font-black uppercase tracking-[1em] mt-24 animate-pulse">Tap to resume terminal</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

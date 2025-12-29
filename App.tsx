@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Screen, State, FocusSession, Screen as ScreenType, Task } from './types';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
@@ -157,65 +158,96 @@ const App: React.FC = () => {
   const showNav = !state.isFirstTime && state.currentScreen !== Screen.ONBOARDING;
 
   return (
-    <div 
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       style={{ '--accent-color': currentTheme.main, '--accent-subtle': currentTheme.subtle } as any} 
       className="h-screen w-screen flex flex-col bg-white dark:bg-slate-900 font-sans overflow-hidden"
     >
       <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav && !isAppFullscreen}>
-        {state.currentScreen === Screen.ONBOARDING && (
-          <Onboarding onComplete={(name, signature) => setState(p => ({
-            ...p, userName: name, signatureImage: signature, isFirstTime: false, currentScreen: Screen.HOME
-          }))} />
-        )}
-        
-        {state.currentScreen === Screen.HOME && (
-          <Focus 
-            userName={state.userName} profileImage={state.profileImage} tasks={state.tasks} activeTaskId={state.activeTaskId} 
-            timerSeconds={timerDisplaySeconds} totalSeconds={state.timerTotalDurationSeconds} 
-            isTimerActive={isTimerActive} isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound}
-            onToggleTimer={toggleTimerAction} onToggleMode={() => setState(prev => ({ ...prev, timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0 }))}
-            onSetTimerSeconds={(s) => setState(prev => ({ ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null }))}
-            onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
-            isAppFullscreen={isAppFullscreen} setIsAppFullscreen={setIsAppFullscreen}
-          />
-        )}
-        
-        {state.currentScreen === Screen.TASKS && (
-          <Tasks 
-            tasks={state.tasks} activeTaskId={state.activeTaskId} isTimerActive={isTimerActive}
-            onAddTask={(text) => setState(p => ({ ...p, tasks: [...p.tasks, { id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null }] }))}
-            onToggleTask={(id) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? Date.now() : null } : t) }))}
-            onDeleteTask={(id) => setState(p => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) }))}
-            onSetActiveTask={(id) => setState(p => ({ ...p, activeTaskId: id }))}
-            onUpdateTask={(id, text) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, text } : t) }))}
-          />
-        )}
-        
-        {state.currentScreen === Screen.SETTINGS && (
-          <Settings 
-            theme={state.theme} accentColor={state.accentColor} font={state.font} isSoundEnabled={state.isSoundEnabled} 
-            isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound} userName={state.userName} 
-            profileImage={state.profileImage} signatureImage={state.signatureImage} sessionLogs={state.sessionLogs}
-            onThemeChange={(t) => setState(p => ({ ...p, theme: t }))}
-            onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))}
-            onFontChange={(f) => setState(p => ({ ...p, font: f }))}
-            onToggleSound={() => setState(p => ({ ...p, isSoundEnabled: !p.isSoundEnabled }))}
-            onToggleAnimations={() => setState(p => ({ ...p, isAnimationsEnabled: !p.isAnimationsEnabled }))}
-            onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
-            onNameChange={(name) => setState(p => ({ ...p, userName: name }))}
-            onProfileImageChange={(img) => setState(p => ({ ...p, profileImage: img }))}
-            onNavigate={navigate}
-          />
-        )}
-        
-        {state.currentScreen === Screen.MARKET && <Market balance={state.balance} onPurchase={() => {}} />}
-        {state.currentScreen === Screen.SESSION_HISTORY && <SessionHistory sessions={state.sessionLogs} />}
+        <AnimatePresence mode="wait">
+          {state.currentScreen === Screen.ONBOARDING && (
+            <motion.div key="onboarding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full w-full">
+              <Onboarding onComplete={(name, signature) => setState(p => ({
+                ...p, userName: name, signatureImage: signature, isFirstTime: false, currentScreen: Screen.HOME
+              }))} />
+            </motion.div>
+          )}
+          
+          {state.currentScreen === Screen.HOME && (
+            <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+              <Focus 
+                userName={state.userName} profileImage={state.profileImage} tasks={state.tasks} activeTaskId={state.activeTaskId} 
+                timerSeconds={timerDisplaySeconds} totalSeconds={state.timerTotalDurationSeconds} 
+                isTimerActive={isTimerActive} isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound}
+                onToggleTimer={toggleTimerAction} onToggleMode={() => setState(prev => ({ ...prev, timerTotalDurationSeconds: prev.timerTotalDurationSeconds === 0 ? 25 * 60 : 0 }))}
+                onSetTimerSeconds={(s) => setState(prev => ({ ...prev, timerTotalDurationSeconds: s, timerEndTimestamp: null, timerPausedRemainingSeconds: null }))}
+                onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
+                isAppFullscreen={isAppFullscreen} setIsAppFullscreen={setIsAppFullscreen}
+              />
+            </motion.div>
+          )}
+          
+          {state.currentScreen === Screen.TASKS && (
+            <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+              <Tasks 
+                tasks={state.tasks} activeTaskId={state.activeTaskId} isTimerActive={isTimerActive}
+                onAddTask={(text) => setState(p => ({ ...p, tasks: [...p.tasks, { id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null }] }))}
+                onToggleTask={(id) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? Date.now() : null } : t) }))}
+                onDeleteTask={(id) => setState(p => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) }))}
+                onSetActiveTask={(id) => setState(p => ({ ...p, activeTaskId: id }))}
+                onUpdateTask={(id, text) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, text } : t) }))}
+              />
+            </motion.div>
+          )}
+          
+          {state.currentScreen === Screen.SETTINGS && (
+            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+              <Settings 
+                theme={state.theme} accentColor={state.accentColor} font={state.font} isSoundEnabled={state.isSoundEnabled} 
+                isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound} userName={state.userName} 
+                profileImage={state.profileImage} signatureImage={state.signatureImage} sessionLogs={state.sessionLogs}
+                onThemeChange={(t) => setState(p => ({ ...p, theme: t }))}
+                onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))}
+                onFontChange={(f) => setState(p => ({ ...p, font: f }))}
+                onToggleSound={() => setState(p => ({ ...p, isSoundEnabled: !p.isSoundEnabled }))}
+                onToggleAnimations={() => setState(p => ({ ...p, isAnimationsEnabled: !p.isAnimationsEnabled }))}
+                onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
+                onNameChange={(name) => setState(p => ({ ...p, userName: name }))}
+                onProfileImageChange={(img) => setState(p => ({ ...p, profileImage: img }))}
+                onNavigate={navigate}
+              />
+            </motion.div>
+          )}
+          
+          {state.currentScreen === Screen.MARKET && (
+             <motion.div key="market" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+              <Market balance={state.balance} onPurchase={() => {}} />
+             </motion.div>
+          )}
+          
+          {state.currentScreen === Screen.SESSION_HISTORY && (
+             <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+              <SessionHistory sessions={state.sessionLogs} />
+             </motion.div>
+          )}
+        </AnimatePresence>
       </Layout>
 
-      {activeOverlay && (
-        <BlockedOverlay appName={activeOverlay.name} onClose={() => setActiveOverlay(null)} />
-      )}
-    </div>
+      <AnimatePresence>
+        {activeOverlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200]"
+          >
+            <BlockedOverlay appName={activeOverlay.name} onClose={() => setActiveOverlay(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
