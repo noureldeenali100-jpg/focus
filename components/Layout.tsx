@@ -49,14 +49,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-white dark:bg-slate-900 overflow-hidden">
-      {/* Desktop Sidebar (Sidebar driven) */}
+    <div className={`h-full w-full ${showNav ? 'lg:grid lg:grid-cols-[100px_1fr]' : 'flex flex-col'} bg-white dark:bg-slate-900 overflow-hidden`}>
+      {/* Sidebar for Desktop */}
       {showNav && (
-        <aside className="hidden lg:flex flex-col w-[100px] bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 items-center py-12 shrink-0 z-50">
-          <div className="w-14 h-14 bg-[var(--accent-color)] rounded-3xl flex items-center justify-center text-white shadow-xl shadow-[var(--accent-color)]/20 mb-14">
+        <aside className="hidden lg:flex flex-col h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 items-center py-12 shrink-0 z-50 overflow-y-auto no-scrollbar">
+          <div className="w-14 h-14 bg-[var(--accent-color)] rounded-3xl flex items-center justify-center text-white shadow-xl shadow-[var(--accent-color)]/20 mb-14 shrink-0">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <div className="flex flex-col space-y-10 items-center flex-1 w-full">
+          <div className="flex flex-col space-y-10 items-center w-full">
             {tabs.map((tab) => {
               const isActive = currentScreen === tab.screen;
               return (
@@ -77,14 +77,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
       )}
 
       {/* Primary Content Stage */}
-      <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
-        <main className="flex-1 relative overflow-hidden flex flex-col">
-          <div key={currentScreen} className="page-transition flex-1 w-full h-full">
+      <div className="flex flex-col h-full w-full relative overflow-hidden">
+        <main className="flex-1 relative overflow-hidden">
+          <div key={currentScreen} className="page-transition h-full w-full">
             {children}
           </div>
         </main>
 
-        {/* Mobile Bottom Navigation (Strict Structural Sibling) */}
+        {/* Mobile Bottom Navigation (Structural Sibling) */}
         {showNav && (
           <nav className="lg:hidden h-24 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-4 shrink-0 z-50">
             {tabs.map((tab) => {

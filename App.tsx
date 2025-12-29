@@ -2,10 +2,11 @@
  * Main Application Component.
  * Orchestrates global state, navigation, audio feedback, and persistence.
  * 
- * DESIGN PRINCIPLE: Bulletproof 100vh/100vw stage with zero overflow.
+ * ARCHITECTURAL PRINCIPLE: "The Stage"
+ * The app fills 100% of the viewport with zero overflow or ghost scrolling.
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Screen, State, FocusSession, Screen as ScreenType, Task } from './types';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
@@ -16,7 +17,7 @@ import BlockedOverlay from './components/BlockedOverlay';
 import Market from './components/Market';
 import SessionHistory from './components/SessionHistory';
 
-const STORAGE_KEY = 'focus_guardian_v15_state';
+const STORAGE_KEY = 'focus_guardian_v19_state';
 
 const App: React.FC = () => {
   const [state, setState] = useState<State>(() => {
@@ -51,7 +52,7 @@ const App: React.FC = () => {
         const parsed = JSON.parse(saved);
         return { ...initialState, ...parsed, isActivated: true };
       }
-    } catch (e) { console.warn('Hydration Error', e); }
+    } catch (e) { console.warn('Hydration Error:', e); }
     return initialState;
   });
 
@@ -158,7 +159,7 @@ const App: React.FC = () => {
   return (
     <div 
       style={{ '--accent-color': currentTheme.main, '--accent-subtle': currentTheme.subtle } as any} 
-      className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden"
+      className="h-screen w-screen flex flex-col bg-white dark:bg-slate-900 font-sans overflow-hidden"
     >
       <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav && !isAppFullscreen}>
         {state.currentScreen === Screen.ONBOARDING && (
