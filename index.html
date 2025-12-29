@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     
-    <!-- Progressier Integration (Replaces manual manifest) -->
+    <!-- Progressier Integration -->
     <link rel="manifest" href="https://progressier.app/A2JJtyHQ8pSrCd5DtvXN/progressier.json" />
     <script src="https://progressier.app/A2JJtyHQ8pSrCd5DtvXN/script.js"></script>
     
@@ -74,10 +74,10 @@
         text-size-adjust: none;
         overflow: hidden;
         height: 100%;
+        height: 100dvh;
         width: 100%;
         background-color: #f8fafc;
         overscroll-behavior: none;
-        /* Prevent keyboard resizing issues on some mobile browsers */
         position: fixed;
       }
 
@@ -88,8 +88,6 @@
         touch-action: manipulation;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
-        
-        /* Performance & Flicker Fixes */
         backface-visibility: hidden;
         perspective: 1000px;
         transform-style: preserve-3d;
@@ -130,31 +128,56 @@
         height: 100%;
       }
       
-      /* Fixed Nav Fix for Keyboard */
-      .bottom-nav-fixed {
-        position: fixed;
+      .bottom-nav-contained {
+        position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
+        width: 100%;
         z-index: 100;
       }
+
+      /* Error UI Overlay style */
+      #crash-shield {
+        position: fixed;
+        inset: 0;
+        background: #fff;
+        color: #000;
+        padding: 2rem;
+        z-index: 9999;
+        font-family: system-ui, sans-serif;
+        display: none;
+      }
+      .dark #crash-shield {
+        background: #020617;
+        color: #f8fafc;
+      }
     </style>
-    <script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "vite": "https://esm.sh/vite@^7.3.0",
+    "react": "https://esm.sh/react@^19.2.3",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
     "@vitejs/plugin-legacy": "https://esm.sh/@vitejs/plugin-legacy@^7.2.1"
   }
 }
 </script>
-  </head>
+</head>
   <body>
     <div id="root"></div>
+    <!-- Critical: Vite handles the module bundling for us -->
     <script type="module" src="/index.tsx"></script>
+    
+    <!-- Crash Shield for visibility on mobile -->
+    <div id="crash-shield">
+      <h1 style="font-weight: 900; letter-spacing: -0.05em; font-size: 2rem;">Guardian Halted</h1>
+      <p style="color: #64748b; margin-top: 1rem;">A system error occurred during initialization.</p>
+      <div id="error-details" style="margin-top: 2rem; padding: 1rem; background: #fee2e2; color: #b91c1c; border-radius: 1rem; font-family: monospace; font-size: 0.875rem; overflow-wrap: break-word;"></div>
+      <button onclick="window.location.reload()" style="margin-top: 2rem; width: 100%; padding: 1rem; background: #000; color: #fff; border-radius: 1rem; font-weight: 700;">Attempt Recovery</button>
+    </div>
   </body>
 </html>
