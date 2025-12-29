@@ -57,6 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -100, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="hidden lg:flex flex-col w-[100px] items-center justify-center shrink-0 z-50 p-6"
           >
             <div className="flex flex-col items-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-full py-10 px-2 space-y-12 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)]">
@@ -77,7 +78,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
                         <motion.div 
                           layoutId="activeTabIndicatorDesktop"
                           className="absolute inset-0 bg-[var(--accent-subtle)] rounded-full"
-                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                          transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                         />
                       )}
                       <div className="relative z-10">
@@ -102,9 +103,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
           {showNav && (
             <div className="lg:hidden absolute bottom-8 left-0 right-0 flex justify-center px-6 pointer-events-none z-[100]">
               <motion.nav 
-                initial={{ y: 100, opacity: 0 }}
+                initial={{ y: 80, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 100, opacity: 0 }}
+                exit={{ y: 80, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                 className="pointer-events-auto h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 flex items-center justify-around px-4 rounded-full shadow-[0_20px_50px_-12px_rgba(0,0,0,0.4)] w-full max-w-sm"
               >
                 {tabs.map((tab) => {
@@ -121,7 +123,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, sh
                           <motion.div 
                             layoutId="activeTabIndicatorMobile"
                             className="absolute inset-0 bg-[var(--accent-subtle)] rounded-full"
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                           />
                         )}
                         <div className="relative z-10">

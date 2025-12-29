@@ -89,7 +89,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       ctx.lineJoin = 'round';
     };
 
-    const timer = setTimeout(initCanvas, 150); // Buffer for Framer Motion animation settling
+    const timer = setTimeout(initCanvas, 100); // Tighter buffer for Framer Motion animation settling
     window.addEventListener('resize', initCanvas);
     return () => {
       clearTimeout(timer);
@@ -155,8 +155,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const containerVariants = {
     initial: { opacity: 0, scale: 0.99 },
-    animate: { opacity: 1, scale: 1, transition: { staggerChildren: 0.1, duration: 0.5 } },
-    exit: { opacity: 0, scale: 1.01, transition: { duration: 0.3 } }
+    animate: { opacity: 1, scale: 1, transition: { staggerChildren: 0.06, duration: 0.35 } },
+    exit: { opacity: 0, scale: 1.01, transition: { duration: 0.2 } }
   };
 
   return (
@@ -170,14 +170,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         >
           {step === 'WELCOME' && (
             <div className="w-full text-center">
-              <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="mb-10 flex justify-center">
+              <motion.div initial={{ scale: 0.85 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }} className="mb-10 flex justify-center">
                 <GuardianLogo />
               </motion.div>
               <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-4">Focus Guardian</h1>
               <p className="text-slate-500 mb-8">Establish your deep work sanctuary.</p>
               <input 
                 type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="What is your name?"
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-8 py-5 text-center text-xl font-bold text-slate-900 dark:text-white outline-none focus:border-[var(--accent-color)] mb-10"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-8 py-5 text-center text-xl font-bold text-slate-900 dark:text-white outline-none focus:border-[var(--accent-color)] mb-10 transition-colors"
               />
               <button 
                 disabled={!name.trim()}

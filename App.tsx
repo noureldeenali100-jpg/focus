@@ -169,9 +169,9 @@ const App: React.FC = () => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.98 }}
+      initial={{ opacity: 0, scale: 0.99 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       style={{ '--accent-color': currentTheme.main, '--accent-subtle': currentTheme.subtle } as any} 
       className="h-screen w-screen flex flex-col bg-white dark:bg-slate-900 font-sans overflow-hidden"
     >
@@ -186,7 +186,7 @@ const App: React.FC = () => {
           )}
           
           {state.currentScreen === Screen.HOME && (
-            <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+            <motion.div key="home" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
               <Focus 
                 userName={state.userName} profileImage={state.profileImage} tasks={state.tasks} activeTaskId={state.activeTaskId} 
                 timerSeconds={timerDisplaySeconds} totalSeconds={state.timerTotalDurationSeconds} 
@@ -208,7 +208,7 @@ const App: React.FC = () => {
           )}
           
           {state.currentScreen === Screen.TASKS && (
-            <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+            <motion.div key="tasks" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
               <Tasks 
                 tasks={state.tasks} activeTaskId={state.activeTaskId} isTimerActive={isTimerActive && !isPaused}
                 onAddTask={(text) => setState(p => ({ ...p, tasks: [...p.tasks, { id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null }] }))}
@@ -221,7 +221,7 @@ const App: React.FC = () => {
           )}
           
           {state.currentScreen === Screen.SETTINGS && (
-            <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+            <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
               <Settings 
                 theme={state.theme} accentColor={state.accentColor} font={state.font} isSoundEnabled={state.isSoundEnabled} 
                 isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound} userName={state.userName} 
@@ -241,13 +241,13 @@ const App: React.FC = () => {
           )}
           
           {state.currentScreen === Screen.MARKET && (
-             <motion.div key="market" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+             <motion.div key="market" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
               <Market balance={state.balance} onPurchase={() => {}} />
              </motion.div>
           )}
           
           {state.currentScreen === Screen.SESSION_HISTORY && (
-             <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full w-full">
+             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
               <SessionHistory sessions={state.sessionLogs} />
              </motion.div>
           )}
