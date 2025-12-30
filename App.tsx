@@ -17,6 +17,7 @@ import Settings from './components/Settings';
 import BlockedOverlay from './components/BlockedOverlay';
 import Market from './components/Market';
 import SessionHistory from './components/SessionHistory';
+import PostSessionPrompt from './components/PostSessionPrompt';
 
 const STORAGE_KEY = 'focus_guardian_v19_state';
 
@@ -60,6 +61,7 @@ const App: React.FC = () => {
   const [timerDisplaySeconds, setTimerDisplaySeconds] = useState(0);
   const [activeOverlay, setActiveOverlay] = useState<{ name: string; waitRemainingMs: number | null } | null>(null);
   const [isAppFullscreen, setIsAppFullscreen] = useState(false);
+  const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
 
   const isTimerActive = useMemo(() => 
     state.timerEndTimestamp !== null || state.timerPausedRemainingSeconds !== null
@@ -92,6 +94,11 @@ const App: React.FC = () => {
         timestamp: now, 
         isCounted: true
       };
+
+      if (status === 'completed') {
+        setTimeout(() => setShowCompletionPrompt(true), 400);
+      }
+
       return { 
         ...prev, 
         sessionLogs: [...prev.sessionLogs, newSession], 
@@ -123,6 +130,22 @@ const App: React.FC = () => {
       }
     });
   }, []);
+
+  const handleStartBreak = () => {
+    setShowCompletionPrompt(false);
+    setState(prev => ({ 
+      ...prev, 
+      timerTotalDurationSeconds: 5 * 60,
+      timerPausedRemainingSeconds: null,
+      timerEndTimestamp: Date.now() + (5 * 60 * 1000),
+      activeSession: { startTime: Date.now(), breakCount: 0, totalBreakMs: 0, lastPauseTimestamp: null }
+    }));
+  };
+
+  const handleContinueFocus = () => {
+    setShowCompletionPrompt(false);
+    toggleTimerAction();
+  };
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -264,6 +287,14 @@ const App: React.FC = () => {
           >
             <BlockedOverlay appName={activeOverlay.name} onClose={() => setActiveOverlay(null)} />
           </motion.div>
+        )}
+
+        {showCompletionPrompt && (
+          <PostSessionPrompt 
+            userName={state.userName} 
+            onTakeBreak={handleStartBreak} 
+            onContinue={handleContinueFocus} 
+          />
         )}
       </AnimatePresence>
     </motion.div>
