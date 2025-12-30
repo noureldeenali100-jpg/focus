@@ -5,8 +5,7 @@
  * DESIGN SPECIFICATION:
  * - Verticality: Content is distributed using a "Weighted Center" strategy.
  * - Clearance: pb-[140px] provides definitive safe-zone above floating navigation.
- * - Improvements: Reduced main control button scale for balanced aesthetic; 
- *   perfectly centered time display; optional glowing ring effect.
+ * - HUD: Immersive full-screen mode with solid black background and high-contrast typography.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -294,20 +293,44 @@ const Focus: React.FC<FocusProps> = ({
         </div>
       </section>
 
-      {/* Immersive HUD Overlay */}
+      {/* Cinematic HUD Mode - Updated with Solid Black Background */}
       <AnimatePresence>
         {isAppFullscreen && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => setIsAppFullscreen(false)}
-            className="fixed inset-0 z-[500] bg-black/98 backdrop-blur-[40px] flex flex-col items-center justify-center cursor-pointer p-10"
+            className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center cursor-pointer p-10 overflow-hidden"
           >
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-baseline text-[25vw] font-black text-white tabular-nums tracking-tighter leading-none">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ 
+                scale: [0.98, 1, 0.98],
+                opacity: 1 
+              }} 
+              transition={{
+                scale: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+                opacity: { duration: 0.5 }
+              }}
+              className="flex items-baseline text-[22vw] sm:text-[25vw] font-black text-white tabular-nums tracking-tighter leading-none select-none"
+            >
               <span>{timeStrMins}</span>
-              <span className="mx-3 opacity-10">:</span>
+              <span className="mx-4 opacity-10">:</span>
               <span>{timeStrSecs}</span>
             </motion.div>
-            <p className="text-white/10 text-[10px] font-black uppercase tracking-[1.5em] mt-20 animate-pulse text-center">Tap to restore</p>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="absolute bottom-20 left-0 right-0 text-center"
+            >
+              <p className="text-white/10 text-[9px] font-black uppercase tracking-[1.5em] animate-pulse">
+                Immersive Focus Active • Tap to restore
+              </p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
