@@ -3,12 +3,10 @@
  * Professional Master Series: Architected for supreme optical balance and ergonomic precision.
  * 
  * DESIGN SPECIFICATION:
- * - Verticality: Content is distributed using a "Weighted Center" strategy. The chronometer ring
- *   is anchored in the primary visual field, while controls are pinned to an ergonomic bottom 
- *   safe-zone that perfectly clears the floating navigation dock.
- * - Clearance: pb-[140px] (140px) provides a calculated 28px "air gap" above the mobile nav dock 
- *   (80px height + 32px bottom offset), preventing any overlap or touch interference.
- * - Materials: Premium high-fidelity glass surfaces with multi-stage lighting and depth shadows.
+ * - Verticality: Content is distributed using a "Weighted Center" strategy.
+ * - Clearance: pb-[140px] provides definitive safe-zone above floating navigation.
+ * - Improvements: Reduced main control button scale for balanced aesthetic; 
+ *   perfectly centered time display; optional glowing ring effect.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -19,6 +17,7 @@ import { MOTIVATIONAL_QUOTES } from '../constants';
 interface FocusProps {
   userName: string; profileImage: string | null; tasks: Task[]; activeTaskId: string | null;
   timerSeconds: number; totalSeconds: number; isTimerActive: boolean; isPaused: boolean; isAnimationsEnabled: boolean; focusSound: FocusSound;
+  isTimerGlowEnabled: boolean;
   onToggleTimer: () => void; onToggleMode: () => void; onSetTimerSeconds: (s: number) => void; onSetFocusSound: (s: FocusSound) => void;
   onEndSession: () => void;
   isAppFullscreen: boolean;
@@ -28,6 +27,7 @@ interface FocusProps {
 const Focus: React.FC<FocusProps> = ({ 
   userName, tasks, activeTaskId,
   timerSeconds, totalSeconds, isTimerActive, isPaused, focusSound,
+  isTimerGlowEnabled,
   onToggleTimer, onToggleMode, onSetTimerSeconds, onSetFocusSound, onEndSession,
   isAppFullscreen, setIsAppFullscreen
 }) => {
@@ -53,7 +53,7 @@ const Focus: React.FC<FocusProps> = ({
   const timeStrMins = mins.toString();
   const timeStrSecs = secs.toString().padStart(2, '0');
 
-  // Precision Geometry: Balanced for mobile and desktop viewports
+  // Precision Geometry
   const radius = 220; 
   const strokeWidth = 14;
   const circumference = 2 * Math.PI * radius;
@@ -70,9 +70,7 @@ const Focus: React.FC<FocusProps> = ({
     }
   };
 
-  /** 
-   * High-Fidelity Design Tokens 
-   */
+  /** High-Fidelity Design Tokens */
   const glassSurface = "bg-white/70 dark:bg-slate-900/70 backdrop-blur-3xl border border-white/40 dark:border-slate-800/40 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]";
   const innerGlow = "after:absolute after:inset-0 after:rounded-full after:ring-1 after:ring-inset after:ring-white/40 dark:after:ring-white/10 after:pointer-events-none";
 
@@ -123,7 +121,6 @@ const Focus: React.FC<FocusProps> = ({
       <section className="flex-1 flex flex-col justify-between items-center relative overflow-hidden">
         
         {/* Tier 2: Visual Centerpiece (Timer + Ring) */}
-        {/* Optical spacing centered within the TOP area to avoid 'too high' feel */}
         <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg px-6">
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
@@ -151,14 +148,15 @@ const Focus: React.FC<FocusProps> = ({
                   animate={{ strokeDashoffset: offset }}
                   transition={{ duration: 1, ease: "linear" }}
                   strokeLinecap="round"
-                  filter={isTimerActive && !isPaused ? "url(#focus-caustic-glow)" : "none"}
+                  filter={isTimerActive && !isPaused && isTimerGlowEnabled ? "url(#focus-caustic-glow)" : "none"}
                   className="transition-all duration-300"
                 />
               )}
             </svg>
 
+            {/* Optimized Centered Time HUD */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10 pointer-events-none">
-              <div className={`flex items-baseline text-[clamp(2.8rem,9vh,6rem)] font-black tracking-tighter leading-none tabular-nums ${isTimerActive ? 'text-slate-900 dark:text-white' : 'text-slate-200 dark:text-slate-800'}`}>
+              <div className={`flex items-center justify-center text-[clamp(2.5rem,8.5vh,5.5rem)] font-black tracking-tighter leading-none tabular-nums ${isTimerActive ? 'text-slate-900 dark:text-white' : 'text-slate-200 dark:text-slate-800'}`}>
                 <span className="tabular-nums">{timeStrMins}</span>
                 <span className="mx-0.5 opacity-15">:</span>
                 <span className="tabular-nums">{timeStrSecs}</span>
@@ -187,7 +185,6 @@ const Focus: React.FC<FocusProps> = ({
         </div>
 
         {/* Tier 3: Ergonomic Control Hub */}
-        {/* pb-[140px] is the CRITICAL clearance for the floating mobile nav dock (h-20 + bottom-8) */}
         <div className="relative w-full max-w-sm flex flex-col items-center justify-center pb-[140px] lg:pb-12 shrink-0">
           <div className="relative flex items-center justify-center w-full h-28">
             
@@ -237,18 +234,18 @@ const Focus: React.FC<FocusProps> = ({
               )}
             </AnimatePresence>
 
-            {/* Primary Command Hub: Play / Pause */}
+            {/* Primary Command Hub: Play / Pause - Reduced to 88px for visual balance */}
             <motion.button 
               layout
               whileTap={{ scale: 0.96 }}
               onClick={onToggleTimer}
-              className={`w-[100px] h-[100px] rounded-full z-10 flex items-center justify-center transition-all shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] relative ${isTimerActive && !isPaused ? 'bg-orange-500 text-white shadow-orange-500/40' : 'bg-[var(--accent-color)] text-white shadow-[var(--accent-color)]/40'}`}
+              className={`w-[88px] h-[88px] rounded-full z-10 flex items-center justify-center transition-all shadow-[0_30px_60px_-15px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] relative ${isTimerActive && !isPaused ? 'bg-orange-500 text-white shadow-orange-500/40' : 'bg-[var(--accent-color)] text-white shadow-[var(--accent-color)]/40'}`}
             >
               <AnimatePresence mode="wait">
                 {isTimerActive && !isPaused ? (
-                  <motion.svg key="pause" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} width="34" height="34" fill="currentColor"><rect x="6" y="4" width="9" height="26" rx="2.5"/><rect x="21" y="4" width="9" height="26" rx="2.5"/></motion.svg>
+                  <motion.svg key="pause" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} width="32" height="32" fill="currentColor"><rect x="6" y="4" width="8" height="26" rx="2.5"/><rect x="20" y="4" width="8" height="26" rx="2.5"/></motion.svg>
                 ) : (
-                  <motion.svg key="play" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} width="34" height="34" fill="currentColor" className="ml-1.5"><path d="M5 3l22 14-22 14V3z" /></motion.svg>
+                  <motion.svg key="play" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} width="32" height="32" fill="currentColor" className="ml-1.5"><path d="M5 3l22 14-22 14V3z" /></motion.svg>
                 )}
               </AnimatePresence>
             </motion.button>
@@ -278,7 +275,7 @@ const Focus: React.FC<FocusProps> = ({
             </AnimatePresence>
           </div>
           
-          {/* Terminate Control: Conditional Session End */}
+          {/* Terminate Control */}
           <div className="h-16 mt-6 flex items-center justify-center">
             <AnimatePresence>
               {isPaused && (

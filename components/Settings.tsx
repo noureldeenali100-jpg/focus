@@ -1,16 +1,21 @@
+/**
+ * Settings Component.
+ * Refined for user customization and professional control.
+ */
+
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Theme, AccentColor, FocusSession, FocusSound, AppFont, Screen } from '../types';
 import AvatarCropper from './AvatarCropper';
 
 interface SettingsProps {
-  theme: Theme; accentColor: AccentColor; font: AppFont; isSoundEnabled: boolean; isAnimationsEnabled: boolean; focusSound: FocusSound;
+  theme: Theme; accentColor: AccentColor; font: AppFont; isSoundEnabled: boolean; isAnimationsEnabled: boolean; isTimerGlowEnabled: boolean; focusSound: FocusSound;
   userName: string; profileImage: string | null; signatureImage: string | null;
   sessionLogs: FocusSession[];
   onThemeChange: (t: Theme) => void; onAccentChange: (c: AccentColor) => void; onFontChange: (f: AppFont) => void;
-  onToggleSound: () => void; onToggleAnimations: () => void; onSetFocusSound: (s: FocusSound) => void; onNameChange: (name: string) => void;
+  onToggleSound: () => void; onToggleAnimations: () => void; onToggleTimerGlow: () => void; onSetFocusSound: (s: FocusSound) => void; onNameChange: (name: string) => void;
   onProfileImageChange: (base64: string) => void;
-  onSignatureChange: (base64: string) => void; // New prop for correct mapping
+  onSignatureChange: (base64: string) => void;
   onNavigate: (s: Screen) => void;
 }
 
@@ -23,8 +28,8 @@ const getAccentHex = (color: AccentColor): string => {
 };
 
 const Settings: React.FC<SettingsProps> = ({ 
-  theme, accentColor, font, isAnimationsEnabled, userName, profileImage, signatureImage,
-  onThemeChange, onAccentChange, onFontChange, onToggleAnimations, onNameChange, onProfileImageChange, onSignatureChange,
+  theme, accentColor, font, isAnimationsEnabled, isTimerGlowEnabled, userName, profileImage, signatureImage,
+  onThemeChange, onAccentChange, onFontChange, onToggleAnimations, onToggleTimerGlow, onNameChange, onProfileImageChange, onSignatureChange,
 }) => {
   const accentColors: AccentColor[] = ['blue', 'emerald', 'purple', 'amber', 'rose', 'slate'];
   const fonts = ['Inter', 'System', 'Serif', 'Mono'];
@@ -90,7 +95,7 @@ const Settings: React.FC<SettingsProps> = ({
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     
-    // Layout-aware normalization to fix sync issues regardless of zoom or parent transforms
+    // Layout-aware normalization
     return {
       x: (e.clientX - rect.left) * (canvas.offsetWidth / rect.width),
       y: (e.clientY - rect.top) * (canvas.offsetHeight / rect.height)
@@ -225,11 +230,20 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center justify-between px-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Animations</p>
-              <button onClick={onToggleAnimations} className={`w-12 h-7 rounded-full transition-all relative ${isAnimationsEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                <motion.div layout className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm ${isAnimationsEnabled ? 'right-1' : 'left-1'}`} />
-              </button>
+            <div className="flex flex-col space-y-6 px-2 pt-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Animations</p>
+                <button onClick={onToggleAnimations} className={`w-12 h-7 rounded-full transition-all relative ${isAnimationsEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                  <motion.div layout className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm ${isAnimationsEnabled ? 'right-1' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Timer Glow Effect</p>
+                <button onClick={onToggleTimerGlow} className={`w-12 h-7 rounded-full transition-all relative ${isTimerGlowEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                  <motion.div layout className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm ${isTimerGlowEnabled ? 'right-1' : 'left-1'}`} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

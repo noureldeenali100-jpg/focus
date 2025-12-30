@@ -126,6 +126,7 @@ export interface State {
   font: AppFont;
   isSoundEnabled: boolean;
   isAnimationsEnabled: boolean;
+  isTimerGlowEnabled: boolean;
   focusSound: FocusSound;
   timerEndTimestamp: number | null; // Null if timer is stopped/idle
   timerPausedRemainingSeconds: number | null; // Remaining seconds if paused

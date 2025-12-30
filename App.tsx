@@ -42,6 +42,7 @@ const App: React.FC = () => {
       font: 'Inter',
       isSoundEnabled: true,
       isAnimationsEnabled: true,
+      isTimerGlowEnabled: true,
       focusSound: 'none',
       timerEndTimestamp: null,
       timerPausedRemainingSeconds: null,
@@ -213,7 +214,8 @@ const App: React.FC = () => {
               <Focus 
                 userName={state.userName} profileImage={state.profileImage} tasks={state.tasks} activeTaskId={state.activeTaskId} 
                 timerSeconds={timerDisplaySeconds} totalSeconds={state.timerTotalDurationSeconds} 
-                isTimerActive={isTimerActive} isPaused={isPaused} isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound}
+                isTimerActive={isTimerActive} isPaused={isPaused} isAnimationsEnabled={state.isAnimationsEnabled} 
+                isTimerGlowEnabled={state.isTimerGlowEnabled} focusSound={state.focusSound}
                 onToggleTimer={toggleTimerAction} 
                 onToggleMode={() => setState(prev => ({ 
                   ...prev, 
@@ -247,13 +249,14 @@ const App: React.FC = () => {
             <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
               <Settings 
                 theme={state.theme} accentColor={state.accentColor} font={state.font} isSoundEnabled={state.isSoundEnabled} 
-                isAnimationsEnabled={state.isAnimationsEnabled} focusSound={state.focusSound} userName={state.userName} 
+                isAnimationsEnabled={state.isAnimationsEnabled} isTimerGlowEnabled={state.isTimerGlowEnabled} focusSound={state.focusSound} userName={state.userName} 
                 profileImage={state.profileImage} signatureImage={state.signatureImage} sessionLogs={state.sessionLogs}
                 onThemeChange={(t) => setState(p => ({ ...p, theme: t }))}
                 onAccentChange={(c) => setState(p => ({ ...p, accentColor: c }))}
                 onFontChange={(f) => setState(p => ({ ...p, font: f }))}
                 onToggleSound={() => setState(p => ({ ...p, isSoundEnabled: !p.isSoundEnabled }))}
                 onToggleAnimations={() => setState(p => ({ ...p, isAnimationsEnabled: !p.isAnimationsEnabled }))}
+                onToggleTimerGlow={() => setState(p => ({ ...p, isTimerGlowEnabled: !p.isTimerGlowEnabled }))}
                 onSetFocusSound={(s) => setState(p => ({ ...p, focusSound: s }))}
                 onNameChange={(name) => setState(p => ({ ...p, userName: name }))}
                 onProfileImageChange={(img) => setState(p => ({ ...p, profileImage: img }))}

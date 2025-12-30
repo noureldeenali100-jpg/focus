@@ -1,3 +1,8 @@
+/**
+ * SessionHistory Component.
+ * Refined with professional staggered animations and clean data visualization.
+ */
+
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FocusSession } from '../types';
@@ -44,6 +49,22 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
     return `${s}s`;
   };
 
+  const listContainer = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const listItem = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 overflow-hidden w-full font-sans">
       <header className="px-8 pt-10 pb-6 shrink-0 max-w-5xl mx-auto w-full">
@@ -61,22 +82,22 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
           
           {/* Summary Dashboard */}
           <div className="grid grid-cols-3 gap-3 mb-12">
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800/50 flex flex-col items-center text-center">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800/50 flex flex-col items-center text-center">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Hours</span>
               <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">
                 {stats.totalTime}<span className="text-xs opacity-40 ml-0.5">h</span>
               </p>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800/50 flex flex-col items-center text-center">
+            </motion.div>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 }} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800/50 flex flex-col items-center text-center">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Today</span>
               <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.sessionsToday}</p>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800/50 flex flex-col items-center text-center">
+            </motion.div>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-[28px] border border-slate-100 dark:border-slate-800/50 flex flex-col items-center text-center">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Success</span>
               <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">
                 {stats.successRate}<span className="text-xs opacity-40 ml-0.5">%</span>
               </p>
-            </div>
+            </motion.div>
           </div>
 
           <div className="mb-6 flex items-center justify-between px-2">
@@ -84,7 +105,12 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
             <div className="h-px flex-1 mx-4 bg-slate-100 dark:bg-slate-800"></div>
           </div>
 
-          <div className="space-y-4 pb-32">
+          <motion.div 
+            variants={listContainer}
+            initial="hidden"
+            animate="show"
+            className="space-y-4 pb-32"
+          >
             {sessions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 opacity-30 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
@@ -93,7 +119,7 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
                 <p className="text-xs font-black uppercase tracking-widest text-slate-500">No logs found</p>
               </div>
             ) : (
-              [...sessions].reverse().map((session, index) => {
+              [...sessions].reverse().map((session) => {
                 const isExpanded = expandedId === session.id;
                 const isCompleted = session.status === 'completed';
                 const progress = session.targetDurationSeconds > 0 ? (session.actualFocusSeconds / session.targetDurationSeconds) * 100 : 100;
@@ -102,10 +128,8 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
                   <motion.div 
                     key={session.id}
                     layout
+                    variants={listItem}
                     onClick={() => setExpandedId(isExpanded ? null : session.id)}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04, duration: 0.3 }}
                     className={`group relative p-6 rounded-[32px] border transition-all cursor-pointer ${isExpanded ? 'bg-slate-50 dark:bg-slate-800/60 border-[var(--accent-color)]/20' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700'}`}
                   >
                     <div className="flex justify-between items-start mb-4">
@@ -176,7 +200,7 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({ sessions }) => {
                 );
               })
             )}
-          </div>
+          </motion.div>
         </div>
       </section>
     </div>
