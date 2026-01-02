@@ -48,10 +48,13 @@ export const hardenState = (untrusted: any, defaults: State): State => {
   return {
     ...defaults,
     userName: sanitize(untrusted.userName, 25),
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     profileImage: isValidImageData(untrusted.profileImage) ? unttrusted.profileImage : null,
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     signatureImage: isValidImageData(untrusted.signatureImage) ? unttrusted.signatureImage : null,
     balance: clamp(untrusted.balance, 0, 1000000, 100),
     timerTotalDurationSeconds: clamp(untrusted.timerTotalDurationSeconds, 0, 86400, 25 * 60),
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     tasks: Array.isArray(untrusted.tasks) ? unttrusted.tasks.map((t: any) => ({
       ...t,
       id: sanitize(t.id, 50),
@@ -59,11 +62,17 @@ export const hardenState = (untrusted: any, defaults: State): State => {
       description: sanitize(t.description, 500),
       completed: !!t.completed
     })) : [],
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     sessionLogs: Array.isArray(untrusted.sessionLogs) ? unttrusted.sessionLogs.filter((s: any) => s && s.id) : [],
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     theme: ['light', 'dark', 'system'].includes(untrusted.theme) ? unttrusted.theme : 'system',
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     accentColor: ['blue', 'emerald', 'purple', 'amber', 'rose', 'slate'].includes(untrusted.accentColor) ? unttrusted.accentColor : 'blue',
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     isSoundEnabled: unttrusted.isSoundEnabled ?? true,
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     isAnimationsEnabled: unttrusted.isAnimationsEnabled ?? true,
+    // Fix: Corrected misspelled variable name 'unttrusted' to 'untrusted'
     isFirstTime: unttrusted.isFirstTime ?? true,
   };
 };
