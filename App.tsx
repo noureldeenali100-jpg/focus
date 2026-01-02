@@ -1,14 +1,7 @@
-/**
- * Main Application Component.
- * Orchestrates global state, navigation, audio feedback, and persistence.
- * 
- * ARCHITECTURAL PRINCIPLE: "The Stage"
- * The app fills 100% of the viewport with zero overflow or ghost scrolling.
- */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Screen, State, FocusSession, Screen as ScreenType } from './types';
+import { Screen, State, FocusSession, Screen as ScreenType, FocusSound } from './types';
 import Layout from './components/Layout';
 import Onboarding from './components/Onboarding';
 import Focus from './components/Focus';
@@ -19,7 +12,7 @@ import Market from './components/Market';
 import SessionHistory from './components/SessionHistory';
 import PostSessionPrompt from './components/PostSessionPrompt';
 
-const STORAGE_KEY = 'focus_guardian_v19_state';
+const STORAGE_KEY = 'focus_guardian_v20_state';
 
 const App: React.FC = () => {
   const [state, setState] = useState<State>(() => {
@@ -64,11 +57,116 @@ const App: React.FC = () => {
   const [isAppFullscreen, setIsAppFullscreen] = useState(false);
   const [showCompletionPrompt, setShowCompletionPrompt] = useState(false);
 
+  // Audio Context for Professional Ambient Sounds
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const soundNodesRef = useRef<{ source: AudioNode | null; gain: GainNode | null }>({ source: null, gain: null });
+
+  const stopAmbientSound = useCallback(() => {
+    if (soundNodesRef.current.source) {
+      soundNodesRef.current.source.disconnect();
+      soundNodesRef.current.source = null;
+    }
+  }, []);
+
+  const startAmbientSound = useCallback((type: FocusSound) => {
+    stopAmbientSound();
+    if (type === 'none') return;
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = audioContextRef.current;
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0.15; // Balanced volume for focus
+    gainNode.connect(ctx.destination);
+    soundNodesRef.current.gain = gainNode;
+
+    if (type === 'rain') {
+      // Procedural Pink Noise for Realistic Rain
+      const bufferSize = 2 * ctx.sampleRate;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let b0, b1, b2, b3, b4, b5, b6;
+      b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        output[i] *= 0.11; 
+        b6 = white * 0.115926;
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = noiseBuffer;
+      source.loop = true;
+      source.connect(gainNode);
+      source.start();
+      soundNodesRef.current.source = source;
+    } else if (type === 'library') {
+      // Deep Brown Noise for Library Ambiance
+      const bufferSize = 4096;
+      let lastOut = 0.0;
+      const source = ctx.createScriptProcessor(bufferSize, 1, 1);
+      source.onaudioprocess = (e) => {
+        const out = e.outputBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          out[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = out[i];
+          out[i] *= 3.5; 
+        }
+      };
+      source.connect(gainNode);
+      soundNodesRef.current.source = source;
+    } else if (type === 'clock') {
+      // Periodic Metronome Click
+      const oscillator = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+      clickGain.gain.setValueAtTime(0, ctx.currentTime);
+      
+      const playClick = () => {
+        const now = ctx.currentTime;
+        clickGain.gain.cancelScheduledValues(now);
+        clickGain.gain.setValueAtTime(0.3, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      };
+      
+      const interval = setInterval(playClick, 1000);
+      oscillator.connect(clickGain);
+      clickGain.connect(gainNode);
+      oscillator.start();
+      
+      soundNodesRef.current.source = {
+        disconnect: () => {
+          clearInterval(interval);
+          oscillator.stop();
+          oscillator.disconnect();
+          clickGain.disconnect();
+        }
+      } as any;
+    }
+  }, [stopAmbientSound]);
+
   const isTimerActive = useMemo(() => 
     state.timerEndTimestamp !== null || state.timerPausedRemainingSeconds !== null
   , [state.timerEndTimestamp, state.timerPausedRemainingSeconds]);
 
   const isPaused = useMemo(() => state.timerPausedRemainingSeconds !== null, [state.timerPausedRemainingSeconds]);
+
+  // Audio trigger effect
+  useEffect(() => {
+    if (isTimerActive && !isPaused && state.isSoundEnabled) {
+      startAmbientSound(state.focusSound);
+    } else {
+      stopAmbientSound();
+    }
+  }, [isTimerActive, isPaused, state.focusSound, state.isSoundEnabled, startAmbientSound, stopAmbientSound]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -132,26 +230,27 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleStartBreak = () => {
+  // Added missing handlers for PostSessionPrompt
+  const handleStartBreak = useCallback(() => {
     setShowCompletionPrompt(false);
-    setState(prev => ({ 
-      ...prev, 
+    const now = Date.now();
+    setState(prev => ({
+      ...prev,
       timerTotalDurationSeconds: 5 * 60,
+      timerEndTimestamp: now + (5 * 60 * 1000),
       timerPausedRemainingSeconds: null,
-      timerEndTimestamp: Date.now() + (5 * 60 * 1000),
-      activeSession: { startTime: Date.now(), breakCount: 0, totalBreakMs: 0, lastPauseTimestamp: null }
+      activeSession: null
     }));
-  };
+  }, []);
 
-  const handleContinueFocus = () => {
+  const handleContinueFocus = useCallback(() => {
     setShowCompletionPrompt(false);
-    toggleTimerAction();
-  };
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
     const isDark = state.theme === 'dark' || (state.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    if (isDark) root.classList.add('dark'); else root.classList.remove('dark');
+    if (isDark) root.classList.add('class', 'dark'); else root.classList.remove('dark');
   }, [state.theme]);
 
   useEffect(() => {
@@ -191,18 +290,21 @@ const App: React.FC = () => {
 
   const showNav = !state.isFirstTime && state.currentScreen !== Screen.ONBOARDING;
 
+  // Animation variants logic: when animations disabled, duration becomes 0
+  const transition = state.isAnimationsEnabled ? { duration: 0.25 } : { duration: 0 };
+
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.99 }}
+      initial={state.isAnimationsEnabled ? { opacity: 0, scale: 0.99 } : { opacity: 1, scale: 1 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: state.isAnimationsEnabled ? 0.4 : 0, ease: [0.22, 1, 0.36, 1] }}
       style={{ '--accent-color': currentTheme.main, '--accent-subtle': currentTheme.subtle } as any} 
       className="h-screen w-screen flex flex-col bg-white dark:bg-slate-900 font-sans overflow-hidden"
     >
       <Layout currentScreen={state.currentScreen} onNavigate={navigate} showNav={showNav && !isAppFullscreen}>
         <AnimatePresence mode="wait">
           {state.currentScreen === Screen.ONBOARDING && (
-            <motion.div key="onboarding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full w-full">
+            <motion.div key="onboarding" initial={state.isAnimationsEnabled ? { opacity: 0 } : {}} animate={{ opacity: 1 }} exit={state.isAnimationsEnabled ? { opacity: 0 } : {}} transition={transition} className="h-full w-full">
               <Onboarding onComplete={(name, signature) => setState(p => ({
                 ...p, userName: name, signatureImage: signature, isFirstTime: false, currentScreen: Screen.HOME
               }))} />
@@ -210,7 +312,7 @@ const App: React.FC = () => {
           )}
           
           {state.currentScreen === Screen.HOME && (
-            <motion.div key="home" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
+            <motion.div key="home" initial={state.isAnimationsEnabled ? { opacity: 0, y: 8 } : {}} animate={{ opacity: 1, y: 0 }} exit={state.isAnimationsEnabled ? { opacity: 0, y: -8 } : {}} transition={transition} className="h-full w-full">
               <Focus 
                 userName={state.userName} profileImage={state.profileImage} tasks={state.tasks} activeTaskId={state.activeTaskId} 
                 timerSeconds={timerDisplaySeconds} totalSeconds={state.timerTotalDurationSeconds} 
@@ -233,20 +335,21 @@ const App: React.FC = () => {
           )}
           
           {state.currentScreen === Screen.TASKS && (
-            <motion.div key="tasks" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
+            <motion.div key="tasks" initial={state.isAnimationsEnabled ? { opacity: 0, y: 8 } : {}} animate={{ opacity: 1, y: 0 }} exit={state.isAnimationsEnabled ? { opacity: 0, y: -8 } : {}} transition={transition} className="h-full w-full">
               <Tasks 
                 tasks={state.tasks} activeTaskId={state.activeTaskId} isTimerActive={isTimerActive && !isPaused}
-                onAddTask={(text) => setState(p => ({ ...p, tasks: [...p.tasks, { id: Date.now().toString(), text, completed: false, createdAt: Date.now(), completedAt: null }] }))}
+                isAnimationsEnabled={state.isAnimationsEnabled}
+                onAddTask={(text, description) => setState(p => ({ ...p, tasks: [...p.tasks, { id: Date.now().toString(), text, description, completed: false, createdAt: Date.now(), completedAt: null }] }))}
                 onToggleTask={(id) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? Date.now() : null } : t) }))}
                 onDeleteTask={(id) => setState(p => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) }))}
                 onSetActiveTask={(id) => setState(p => ({ ...p, activeTaskId: id }))}
-                onUpdateTask={(id, text) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, text } : t) }))}
+                onUpdateTask={(id, text, description) => setState(p => ({ ...p, tasks: p.tasks.map(t => t.id === id ? { ...t, text, description } : t) }))}
               />
             </motion.div>
           )}
           
           {state.currentScreen === Screen.SETTINGS && (
-            <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
+            <motion.div key="settings" initial={state.isAnimationsEnabled ? { opacity: 0, y: 8 } : {}} animate={{ opacity: 1, y: 0 }} exit={state.isAnimationsEnabled ? { opacity: 0, y: -8 } : {}} transition={transition} className="h-full w-full">
               <Settings 
                 theme={state.theme} accentColor={state.accentColor} font={state.font} isSoundEnabled={state.isSoundEnabled} 
                 isAnimationsEnabled={state.isAnimationsEnabled} isTimerGlowEnabled={state.isTimerGlowEnabled} focusSound={state.focusSound} userName={state.userName} 
@@ -266,15 +369,14 @@ const App: React.FC = () => {
             </motion.div>
           )}
           
-          {state.currentScreen === Screen.MARKET && (
-             <motion.div key="market" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
-              <Market balance={state.balance} onPurchase={() => {}} />
-             </motion.div>
-          )}
-          
           {state.currentScreen === Screen.SESSION_HISTORY && (
-             <motion.div key="history" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="h-full w-full">
-              <SessionHistory sessions={state.sessionLogs} />
+             <motion.div key="history" initial={state.isAnimationsEnabled ? { opacity: 0, y: 8 } : {}} animate={{ opacity: 1, y: 0 }} exit={state.isAnimationsEnabled ? { opacity: 0, y: -8 } : {}} transition={transition} className="h-full w-full">
+              <SessionHistory 
+                sessions={state.sessionLogs} 
+                isAnimationsEnabled={state.isAnimationsEnabled}
+                onDeleteSession={(id) => setState(p => ({ ...p, sessionLogs: p.sessionLogs.filter(s => s.id !== id) }))}
+                onClearAll={() => setState(p => ({ ...p, sessionLogs: [] }))}
+              />
              </motion.div>
           )}
         </AnimatePresence>
@@ -282,22 +384,13 @@ const App: React.FC = () => {
 
       <AnimatePresence>
         {activeOverlay && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200]"
-          >
+          <motion.div initial={state.isAnimationsEnabled ? { opacity: 0 } : {}} animate={{ opacity: 1 }} exit={state.isAnimationsEnabled ? { opacity: 0 } : {}} className="fixed inset-0 z-[200]">
             <BlockedOverlay appName={activeOverlay.name} onClose={() => setActiveOverlay(null)} />
           </motion.div>
         )}
 
         {showCompletionPrompt && (
-          <PostSessionPrompt 
-            userName={state.userName} 
-            onTakeBreak={handleStartBreak} 
-            onContinue={handleContinueFocus} 
-          />
+          <PostSessionPrompt userName={state.userName} onTakeBreak={handleStartBreak} onContinue={handleContinueFocus} />
         )}
       </AnimatePresence>
     </motion.div>
